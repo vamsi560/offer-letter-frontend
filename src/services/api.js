@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = '/api'
+const API_BASE_URL = 'https://offer-letter-backend-gcf9d8g7f3ghcfb2.canadacentral-01.azurewebsites.net/api'; // Replace with your deployed backend URL
 
 // Create axios instance
 const api = axios.create({
