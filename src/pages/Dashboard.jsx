@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
+import { motion } from 'framer-motion'
+import { 
+  FiUsers, 
+  FiClock, 
+  FiCheckCircle, 
+  FiPlus,
+  FiMail,
+  FiPhone,
+  FiBriefcase,
+  FiCalendar
+} from 'react-icons/fi'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import Navbar from '../components/Navbar'
+import { dashboardAPI } from '../services/api'
+import { DashboardSkeleton } from '../components/LoadingSkeleton'
+
+const Dashboard = () => {
+  const [dashboardData, setDashboardData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
+
+  const loadDashboard = async () => {
+    try {
+      const data = await dashboardAPI.getDashboard()
+      setDashboardData(data)
+    } catch (error) {
+      toast.error('Failed to load dashboard data')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+  const stats = [
+    {
+      label: 'Total Candidates',
+      value: dashboardData?.total_candidates || 0,
+      icon: FiUsers,
+      color: 'from-teal-500 to-teal-600',
+      bgColor: 'bg-teal-100',
+      textColor: 'text-teal-600',
+    },
+    {
+      label: 'Pending Offers',
+      value: dashboardData?.pending_offers || 0,
+      icon: FiClock,
+      color: 'from-yellow-500 to-yellow-600',
+      bgColor: 'bg-yellow-100',
+      textColor: 'text-yellow-600',
+    },
+    {
+      label: 'Sent Offers',
+      value: dashboardData?.sent_offers || 0,
+      icon: FiCheckCircle,
+      color: 'from-green-500 to-green-600',
+      bgColor: 'bg-green-100',
+      textColor: 'text-green-600',
+    },
+  ]
+
+  const chartData = [
+    { name: 'Sent Offers', value: dashboardData?.sent_offers || 0 },
+    { name: 'Pending Offers', value: dashboardData?.pending_offers || 0 },
+  ]
+
+  const COLORS = ['#10b981', '#eab308']
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
+        <Navbar user={user} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardSkeleton />
+        </div>
+      </div>
+    )
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
+        <Navbar user={user} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-red-500">Failed to load dashboard</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <Navbar user={dashboardData.user} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8"
+        >
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              Welcome back, <span className="text-teal-600">{dashboardData.user.name}</span>
+            </h1>
+            <p className="text-gray-600">Here's an overview of your candidates</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/offer-letter')}
+            className="mt-4 md:mt-0 flex items-center space-x-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span className="font-semibold">Create New Offer Letter</span>
+          </motion.button>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className={`stat-card bg-white rounded-2xl p-6 shadow-lg border border-gray-100`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`${stat.bgColor} p-3 rounded-xl`}>
+                    <Icon className={`w-6 h-6 ${stat.textColor}`} />
+                  </div>
+                  <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                    {stat.value}
+                  </div>
+                </div>
+                <p className="text-gray-600 font-medium">{stat.label}</p>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Candidates Table */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="lg:col-span-2 card"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Your Candidates</h2>
+              <span className="text-sm text-gray-500">
+                {dashboardData.candidates.length} total
+              </span>
+            </div>
+            {dashboardData.candidates.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <FiUsers className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>No candidates found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Position</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardData.candidates.map((candidate, index) => (
+                      <motion.tr
+                        key={candidate.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
+                              {candidate.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-800">{candidate.name}</div>
+                              <div className="text-sm text-gray-500 flex items-center space-x-1">
+                                <FiMail className="w-3 h-3" />
+                                <span>{candidate.email}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2 text-gray-700">
+                            <FiBriefcase className="w-4 h-4" />
+                            <span>{candidate.position}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                              candidate.status === 'Offer Sent'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {candidate.status === 'Offer Sent' ? (
+                              <FiCheckCircle className="w-3 h-3 mr-1" />
+                            ) : (
+                              <FiClock className="w-3 h-3 mr-1" />
+                            )}
+                            {candidate.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          {candidate.offer_date ? (
+                            <div className="flex items-center space-x-2 text-gray-600">
+                              <FiCalendar className="w-4 h-4" />
+                              <span className="text-sm">{candidate.offer_date}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-sm">N/A</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          {candidate.status === 'Pending' && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() =>
+                                navigate('/offer-letter', {
+                                  state: { candidate }
+                                })
+                              }
+                              className="px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white text-sm rounded-lg hover:shadow-lg transition-all duration-300"
+                            >
+                              Send Offer
+                            </motion.button>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="card"
+          >
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Offer Status</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Dashboard
