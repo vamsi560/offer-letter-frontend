@@ -47,6 +47,7 @@ const OfferLetterForm = () => {
     employment_type: 'Full-time',
     facility: '',
     work_location: '',
+    work_mode: '', // Add new field for Work Mode
     reporting_manager: '',
     joining_date: '',
     probation_period: '',
@@ -114,6 +115,11 @@ const OfferLetterForm = () => {
     }))
   }
 
+  const handleTotalSalaryChange = (e) => {
+    handleChange(e);
+    calculateSalaryBreakdown();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -159,6 +165,11 @@ const OfferLetterForm = () => {
         candidate_email: formData.candidate_email,
         pdf_path: lastOfferLetter.pdf_path,
         candidate_name: formData.candidate_name,
+        designation: formData.designation,
+        joining_date: formData.joining_date,
+        facility: formData.facility,
+        work_mode: formData.work_mode,
+        tag_poc: formData.tag_poc,
         // Optionally add cc_email: formData.tag_poc
       })
       setEmailSent(true)
@@ -205,34 +216,8 @@ const OfferLetterForm = () => {
   }
 
   useEffect(() => {
-    if (formData.total_salary) {
-      const totalSalary = parseFloat(formData.total_salary)
-      setSalaryBreakdown({
-        Monthly_Basic: `₹${(totalSalary * 0.5 / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual_Basic: `₹${(totalSalary * 0.5).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Monthly_HRA: `₹${(totalSalary * 0.2 / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual_HRA: `₹${(totalSalary * 0.2).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Monthly_Conveyance: `₹${(totalSalary * 0.02 / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual__Conveyance: `₹${(totalSalary * 0.02).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Monthly_PF: `₹${(totalSalary * 0.12 / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual_PF: `₹${(totalSalary * 0.12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Monthly_Gratuity: `₹${(totalSalary * 0.0481 / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual_Gratuity: `₹${(totalSalary * 0.0481).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Monthly_Sodexo: `₹0.00`,
-        Annual_Sodexo: `₹0.00`,
-        Monthly_LTC: `₹0.00`,
-        Annual_LTC: `₹0.00`,
-        Monthly_NPS: `₹0.00`,
-        Monthly_Gross: `₹${(totalSalary / 12).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Annual_Gross: `₹${totalSalary.toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Total_Annual_Gross: `₹${totalSalary.toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-        Professional_Tax: `₹200.00`,
-        Annual_Professional_Tax: `₹2,400.00`,
-      })
-    } else {
-      setSalaryBreakdown({})
-    }
-  }, [formData.total_salary])
+    setSalaryBreakdown(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
@@ -418,6 +403,20 @@ const OfferLetterForm = () => {
                       <option value="VM-towers">VM-towers</option>
                     </select>
                   )}
+                  <div className="form-group">
+                    <label htmlFor="work_mode">Work Mode</label>
+                    <select
+                      id="work_mode"
+                      name="work_mode"
+                      value={formData.work_mode}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select</option>
+                      <option value="Remote">Remote</option>
+                      <option value="Offline">Offline</option>
+                    </select>
+                  </div>
                   <input type="text" name="reporting_manager" placeholder="Reporting Manager (Full Name)" className="form-input w-full" value={formData.reporting_manager} onChange={handleChange} />
                   <div className="col-span-1">
                     <label htmlFor="joining_date" className="block text-sm font-semibold text-gray-700 mb-1">Joining Date</label>
@@ -445,7 +444,7 @@ const OfferLetterForm = () => {
                   <input type="number" name="ectc" placeholder="ECTC" className="form-input w-full" value={formData.ectc} onChange={handleChange} />
                   <input type="number" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full" value={formData.vam_proposed_ctc} onChange={handleChange} />
                   <input type="number" name="revised_ctc" placeholder="Revised CTC (after initial Offer)" className="form-input w-full" value={formData.revised_ctc} onChange={handleChange} />
-                  <input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={e => { handleChange(e); calculateSalaryBreakdown(); }} />
+                  <input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={handleTotalSalaryChange} />
                   <input
                     type="text"
                     name="deviation"
@@ -468,15 +467,12 @@ const OfferLetterForm = () => {
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>Basic Salary: <span className="font-bold">{formatCurrency(salaryBreakdown.basic_salary)}</span></div>
-                      <div>HRA: <span className="font-bold">{formatCurrency(salaryBreakdown.hra)}</span></div>
-                      <div>Special Allowance: <span className="font-bold">{formatCurrency(salaryBreakdown.special_allowance)}</span></div>
-                      <div>Transport Allowance: <span className="font-bold">{formatCurrency(salaryBreakdown.transport_allowance)}</span></div>
-                      <div>Medical Allowance: <span className="font-bold">{formatCurrency(salaryBreakdown.medical_allowance)}</span></div>
-                      <div>Provident Fund: <span className="font-bold">{formatCurrency(salaryBreakdown.provident_fund)}</span></div>
-                      <div>Professional Tax: <span className="font-bold">{formatCurrency(salaryBreakdown.professional_tax)}</span></div>
-                      <div>Total Deductions: <span className="font-bold">{formatCurrency(salaryBreakdown.total_deductions)}</span></div>
-                      <div>Net Salary: <span className="font-bold text-green-700">{formatCurrency(salaryBreakdown.net_salary)}</span></div>
+                      {/* Render backend breakdown keys if available, else fallback to frontend */}
+                      {Object.entries(salaryBreakdown).map(([key, value]) => (
+                        <div key={key}>
+                          <span className="font-bold">{key.replace(/_/g, ' ')}:</span> <span>{value}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

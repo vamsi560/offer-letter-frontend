@@ -64,12 +64,17 @@ export const offerLetterAPI = {
     const response = await api.get('/offer-letters')
     return response.data
   },
-  sendEmail: async ({ candidate_email, pdf_path, candidate_name, cc_email }) => {
+  sendEmail: async ({ candidate_email, pdf_path, candidate_name, cc_email, designation, joining_date, facility, work_mode, tag_poc }) => {
     const response = await api.post('/offer-letter/send-email', {
       candidate_email,
       pdf_path,
       candidate_name,
       cc_email,
+      designation,
+      joining_date,
+      facility,
+      work_mode,
+      tag_poc,
     })
     return response.data
   },
