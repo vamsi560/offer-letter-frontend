@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://20.84.109.123:8000/api'; // Updated for VM backend
+const API_BASE_URL = 'https://offer-letter-backend-gcf9d8g7f3ghcfb2.canadacentral-01.azurewebsites.net/api'; // Updated to latest Azure App Service backend URL
 
 // Create axios instance
 const api = axios.create({
