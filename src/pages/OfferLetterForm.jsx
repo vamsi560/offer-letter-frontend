@@ -508,14 +508,14 @@ const OfferLetterForm = () => {
           </AnimatePresence>
         </form>
       </div>
-      <Modal isOpen={showEmailModal} onClose={() => { setShowEmailModal(false); navigate('/dashboard') }} title="Send Offer Letter Email?">
+      <Modal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} title="Send Offer Letter Email?">
         {emailSent ? (
           <div className="text-green-700 font-semibold text-lg">Email sent successfully!</div>
         ) : (
           <>
             <div className="mb-4">Do you want to send the offer letter email to the candidate now?</div>
             <div className="flex gap-4 justify-end">
-              <button onClick={() => { setShowEmailModal(false); navigate('/dashboard') }} className="px-4 py-2 bg-gray-200 rounded-lg">No</button>
+              <button onClick={() => setShowEmailModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">No</button>
               <button onClick={handleSendEmail} className="px-4 py-2 bg-teal-600 text-white rounded-lg" disabled={emailSending}>{emailSending ? 'Sending...' : 'Yes, Send Email'}</button>
             </div>
           </>
