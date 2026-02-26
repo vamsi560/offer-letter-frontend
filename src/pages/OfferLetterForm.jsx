@@ -76,7 +76,8 @@ const OfferLetterForm = () => {
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [lastOfferLetter, setLastOfferLetter] = useState(null)
-  const [docxPath, setDocxPath] = useState(null)
+  const [pdfPath, setPdfPath] = useState('');
+  const [docxPath, setDocxPath] = useState('');
 
   const calculateSalaryBreakdown = async () => {
     if (!formData.total_salary || formData.total_salary <= 0) {
@@ -149,6 +150,7 @@ const OfferLetterForm = () => {
       })
       setLastOfferLetter(response)
       setDocxPath(response.docx_path)
+      setPdfPath(response.pdf_path)
       setShowEmailModal(true)
       toast.success('Offer letter generated successfully!')
     } catch (error) {
@@ -476,6 +478,14 @@ const OfferLetterForm = () => {
                     </div>
                   </div>
                 )}
+                <div className="form-group">
+                  <label>Download Offer Letter (PDF):</label>
+                  {pdfPath && <a href={pdfPath} target="_blank" rel="noopener noreferrer">Download PDF</a>}
+                </div>
+                <div className="form-group">
+                  <label>Download Offer Letter (DOCX):</label>
+                  {docxPath && <a href={docxPath} target="_blank" rel="noopener noreferrer">Download DOCX</a>}
+                </div>
                 <div className="flex justify-between mt-6">
                   <button type="button" onClick={() => setCurrentStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
                     Back
