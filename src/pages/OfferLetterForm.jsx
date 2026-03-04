@@ -100,10 +100,10 @@ const OfferLetterForm = () => {
 
   // Deviation (in percentage) calculation
   const calculateDeviation = () => {
-    const ectc = parseFloat(formData.ectc) || 0;
+    const currentCtc = parseFloat(formData.current_ctc) || 0;
     const totalSalary = parseFloat(formData.total_salary) || 0;
-    if (ectc > 0) {
-      return (((totalSalary - ectc) / ectc) * 100).toFixed(2);
+    if (currentCtc > 0) {
+      return (((totalSalary - currentCtc) / currentCtc) * 100).toFixed(2);
     }
     return '';
   };
@@ -125,6 +125,7 @@ const OfferLetterForm = () => {
     e.preventDefault()
     setLoading(true)
     try {
+      const computedDeviation = calculateDeviation()
       // Basic validation for required fields
       if (!formData.designation || !formData.department || !formData.joining_date || !formData.employment_type) {
         toast.error('Please fill in all required Position fields')
@@ -143,7 +144,7 @@ const OfferLetterForm = () => {
         ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
         vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
         revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
-        deviation: formData.deviation ? parseInt(formData.deviation) : undefined,
+        deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
         jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
         days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
         np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
@@ -189,6 +190,7 @@ const OfferLetterForm = () => {
 
   const handleGenerateDocx = async () => {
     try {
+      const computedDeviation = calculateDeviation()
       const response = await offerLetterAPI.generateDocx({
         ...formData,
         total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
@@ -196,7 +198,7 @@ const OfferLetterForm = () => {
         ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
         vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
         revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
-        deviation: formData.deviation ? parseInt(formData.deviation) : undefined,
+        deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
         jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
         days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
         np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
