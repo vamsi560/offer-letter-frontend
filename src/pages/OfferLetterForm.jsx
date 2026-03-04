@@ -79,6 +79,41 @@ const OfferLetterForm = () => {
   const [pdfPath, setPdfPath] = useState('');
   const [docxPath, setDocxPath] = useState('');
 
+  const requiredFieldsByStep = {
+    1: [
+      { key: 'candidate_name', label: 'Candidate Name' },
+      { key: 'candidate_email', label: 'Candidate Email' },
+      { key: 'candidate_phone', label: 'Candidate Phone' },
+      { key: 'pan', label: 'PAN' },
+      { key: 'tag_poc', label: 'TAG POC' },
+      { key: 'status', label: 'Status' },
+      { key: 'source', label: 'Source' },
+    ],
+    2: [
+      { key: 'designation', label: 'Designation' },
+      { key: 'position', label: 'Position' },
+      { key: 'department', label: 'Department' },
+      { key: 'employment_type', label: 'Employment Type' },
+      { key: 'facility', label: 'Facility' },
+      { key: 'work_mode', label: 'Work Mode' },
+      { key: 'joining_date', label: 'Joining Date' },
+    ],
+    3: [
+      { key: 'total_salary', label: 'Total Salary' },
+      { key: 'current_ctc', label: 'Current CTC' },
+    ],
+  }
+
+  const requiredForEmail = [
+    { key: 'candidate_name', label: 'Candidate Name' },
+    { key: 'candidate_email', label: 'Candidate Email' },
+    { key: 'tag_poc', label: 'TAG POC' },
+    { key: 'designation', label: 'Designation' },
+    { key: 'joining_date', label: 'Joining Date' },
+    { key: 'facility', label: 'Facility' },
+    { key: 'work_mode', label: 'Work Mode' },
+  ]
+
   const calculateSalaryBreakdown = async () => {
     if (!formData.total_salary || formData.total_salary <= 0) {
       setSalaryBreakdown(null)
@@ -110,9 +145,10 @@ const OfferLetterForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    const normalizedValue = name === 'pan' ? value.toUpperCase().replace(/\s+/g, '') : value
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: normalizedValue
     }))
   }
 
@@ -126,14 +162,16 @@ const OfferLetterForm = () => {
     setLoading(true)
     try {
       const computedDeviation = calculateDeviation()
-      // Basic validation for required fields
-      if (!formData.designation || !formData.department || !formData.joining_date || !formData.employment_type) {
-        toast.error('Please fill in all required Position fields')
+      const missingAcrossSteps = getMissingFieldsForSteps([1, 2, 3])
+      const missingForEmail = getMissingFields(requiredForEmail)
+      if (missingAcrossSteps.length > 0 || missingForEmail.length > 0) {
+        const allMissing = [...new Set([...missingAcrossSteps, ...missingForEmail])]
+        toast.error(`Please fill required fields: ${allMissing.slice(0, 4).join(', ')}${allMissing.length > 4 ? '...' : ''}`)
         setLoading(false)
         return
       }
-      if (!formData.total_salary) {
-        toast.error('Please fill in Total Salary in Compensation')
+      if (!isPanValid()) {
+        toast.error('Please enter a valid PAN (e.g., ABCDE1234F)')
         setLoading(false)
         return
       }
@@ -162,6 +200,12 @@ const OfferLetterForm = () => {
   }
 
   const handleSendEmail = async () => {
+    const missingForEmail = getMissingFields(requiredForEmail)
+    if (missingForEmail.length > 0) {
+      toast.error(`Please fill email-required fields: ${missingForEmail.slice(0, 4).join(', ')}${missingForEmail.length > 4 ? '...' : ''}`)
+      return
+    }
+
     setEmailSending(true)
     try {
       await offerLetterAPI.sendEmail({
@@ -223,6 +267,45 @@ const OfferLetterForm = () => {
     setSalaryBreakdown(null);
   }, []);
 
+  const isPanValid = () => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((formData.pan || '').trim())
+
+  const getMissingFields = (requiredList) =>
+    requiredList
+      .filter(({ key }) => !String(formData[key] ?? '').trim())
+      .map(({ label }) => label)
+
+  const getMissingFieldsForStep = (step) => getMissingFields(requiredFieldsByStep[step] || [])
+
+  const getMissingFieldsForSteps = (steps) => steps.flatMap((s) => getMissingFieldsForStep(s))
+
+  const goToStep = (nextStep) => {
+    const missingCurrent = getMissingFieldsForStep(currentStep)
+    if (nextStep > currentStep && missingCurrent.length > 0) {
+      toast.error(`Complete required fields: ${missingCurrent.slice(0, 4).join(', ')}${missingCurrent.length > 4 ? '...' : ''}`)
+      return
+    }
+    setCurrentStep(nextStep)
+  }
+
+  const renderRequiredSummary = (step) => {
+    const missing = getMissingFieldsForStep(step)
+    if (missing.length === 0) return null
+    return (
+      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <div className="text-sm font-semibold text-amber-800">Required fields missing</div>
+        <div className="text-sm text-amber-700 mt-1">{missing.join(', ')}</div>
+      </div>
+    )
+  }
+
+  const renderCurrencyPreview = (fieldName) => {
+    const raw = formData[fieldName]
+    if (raw === '' || raw === null || raw === undefined) return null
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return null
+    return <div className="text-xs text-gray-500 mt-1">{formatCurrency(n)}</div>
+  }
+
   const renderBreakdownValue = (value) => {
     if (Array.isArray(value)) {
       return (
@@ -249,13 +332,17 @@ const OfferLetterForm = () => {
     return <span>{String(value ?? '')}</span>
   }
 
+  const compensationRows = Array.isArray(salaryBreakdown?.Compensation_Table_Rows)
+    ? salaryBreakdown.Compensation_Table_Rows
+    : []
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
       <Navbar user={user} />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
               Create New Offer Letter
             </h1>
             <p className="text-gray-600">Fill in the details to generate an offer letter</p>
@@ -313,6 +400,7 @@ const OfferLetterForm = () => {
               <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
                 {/* General/Recruitment Section */}
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">General / Recruitment Details</h2>
+                {renderRequiredSummary(1)}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
                     <option value="">Status</option>
@@ -363,12 +451,27 @@ const OfferLetterForm = () => {
                   <input type="tel" name="candidate_phone" placeholder="Contact No" className="form-input w-full" value={formData.candidate_phone} onChange={handleChange} />
                   <input type="email" name="candidate_email" placeholder="Email ID" className="form-input w-full" value={formData.candidate_email} onChange={handleChange} />
                   <input type="text" name="candidate_address" placeholder="Address" className="form-input w-full" value={formData.candidate_address} onChange={handleChange} />
-                  <input type="text" name="pan" placeholder="PAN" className="form-input w-full" value={formData.pan} onChange={handleChange} />
+                  <div>
+                    <input
+                      type="text"
+                      name="pan"
+                      placeholder="PAN"
+                      className={`form-input w-full ${formData.pan && !isPanValid() ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}`}
+                      maxLength={10}
+                      value={formData.pan}
+                      onChange={handleChange}
+                    />
+                    {formData.pan && (
+                      <div className={`text-xs mt-1 ${isPanValid() ? 'text-green-600' : 'text-red-600'}`}>
+                        {isPanValid() ? 'Valid PAN format' : 'Invalid PAN format (ABCDE1234F)'}
+                      </div>
+                    )}
+                  </div>
                   <input type="text" name="prev_org" placeholder="Previous Organization" className="form-input w-full" value={formData.prev_org} onChange={handleChange} />
                   <input type="text" name="comments" placeholder="Comments" className="form-input w-full" value={formData.comments} onChange={handleChange} />
                 </div>
                 <div className="flex justify-end mt-6">
-                  <button type="button" onClick={() => setCurrentStep(2)} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                  <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
                     Next: Position Details
                   </button>
                 </div>
@@ -378,6 +481,7 @@ const OfferLetterForm = () => {
               <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
                 {/* Position Section */}
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Position Details</h2>
+                {renderRequiredSummary(2)}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <input type="text" name="designation" placeholder="Designation" className="form-input w-full" value={formData.designation} onChange={handleChange} />
                   <input type="text" name="position" placeholder="Position" className="form-input w-full" value={formData.position} onChange={handleChange} />
@@ -456,10 +560,10 @@ const OfferLetterForm = () => {
                   <input type="text" name="notice_period" placeholder="Notice Period" className="form-input w-full" value={formData.notice_period} onChange={handleChange} />
                 </div>
                 <div className="flex justify-between mt-6">
-                  <button type="button" onClick={() => setCurrentStep(1)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
+                  <button type="button" onClick={() => goToStep(1)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
                     Back
                   </button>
-                  <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                  <button type="button" onClick={() => goToStep(3)} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
                     Next: Compensation Details
                   </button>
                 </div>
@@ -469,12 +573,13 @@ const OfferLetterForm = () => {
               <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
                 {/* Compensation Section */}
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Compensation Details</h2>
+                {renderRequiredSummary(3)}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input type="number" name="current_ctc" placeholder="Current CTC" className="form-input w-full" value={formData.current_ctc} onChange={handleChange} />
-                  <input type="number" name="ectc" placeholder="ECTC" className="form-input w-full" value={formData.ectc} onChange={handleChange} />
-                  <input type="number" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full" value={formData.vam_proposed_ctc} onChange={handleChange} />
-                  <input type="number" name="revised_ctc" placeholder="Revised CTC (after initial Offer)" className="form-input w-full" value={formData.revised_ctc} onChange={handleChange} />
-                  <input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={handleTotalSalaryChange} />
+                  <div><input type="number" name="current_ctc" placeholder="Current CTC" className="form-input w-full" value={formData.current_ctc} onChange={handleChange} />{renderCurrencyPreview('current_ctc')}</div>
+                  <div><input type="number" name="ectc" placeholder="ECTC" className="form-input w-full" value={formData.ectc} onChange={handleChange} />{renderCurrencyPreview('ectc')}</div>
+                  <div><input type="number" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full" value={formData.vam_proposed_ctc} onChange={handleChange} />{renderCurrencyPreview('vam_proposed_ctc')}</div>
+                  <div><input type="number" name="revised_ctc" placeholder="Revised CTC (after initial Offer)" className="form-input w-full" value={formData.revised_ctc} onChange={handleChange} />{renderCurrencyPreview('revised_ctc')}</div>
+                  <div><input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={handleTotalSalaryChange} />{renderCurrencyPreview('total_salary')}</div>
                   <input
                     type="text"
                     name="deviation"
@@ -483,10 +588,10 @@ const OfferLetterForm = () => {
                     value={calculateDeviation()}
                     readOnly
                   />
-                  <input type="number" name="jb_amt" placeholder="JB Amount (Rs)" className="form-input w-full" value={formData.jb_amt} onChange={handleChange} />
+                  <div><input type="number" name="jb_amt" placeholder="JB Amount (Rs)" className="form-input w-full" value={formData.jb_amt} onChange={handleChange} />{renderCurrencyPreview('jb_amt')}</div>
                   <input type="text" name="jb_reason" placeholder="JB Reason" className="form-input w-full" value={formData.jb_reason} onChange={handleChange} />
                   <input type="number" name="days_lapsed" placeholder="Days Lapsed" className="form-input w-full" value={formData.days_lapsed} onChange={handleChange} />
-                  <input type="number" name="np_buyout_amt" placeholder="NP Buyout (If yes - amt)" className="form-input w-full" value={formData.np_buyout_amt} onChange={handleChange} />
+                  <div><input type="number" name="np_buyout_amt" placeholder="NP Buyout (If yes - amt)" className="form-input w-full" value={formData.np_buyout_amt} onChange={handleChange} />{renderCurrencyPreview('np_buyout_amt')}</div>
                   <div className="col-span-1">
                     <label htmlFor="np_buyout_mail_approval_date" className="block text-sm font-semibold text-gray-700 mb-1">NP Buyout Mail Approval Date</label>
                     <input type="date" id="np_buyout_mail_approval_date" name="np_buyout_mail_approval_date" className="form-input w-full" value={formData.np_buyout_mail_approval_date} onChange={handleChange} />
@@ -498,13 +603,41 @@ const OfferLetterForm = () => {
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Render backend breakdown keys if available, else fallback to frontend */}
-                      {Object.entries(salaryBreakdown).map(([key, value]) => (
+                      {Object.entries(salaryBreakdown)
+                        .filter(([key]) => key !== 'Compensation_Table_Rows')
+                        .map(([key, value]) => (
                         <div key={key}>
                           <span className="font-bold">{key.replace(/_/g, ' ')}:</span>{' '}
                           {renderBreakdownValue(value)}
                         </div>
                       ))}
                     </div>
+
+                    {compensationRows.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Compensation Details</h4>
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Component</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Monthly</th>
+                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Annual</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {compensationRows.map((row, idx) => (
+                                <tr key={`${row.component}-${idx}`} className="border-t border-gray-100">
+                                  <td className="px-3 py-2">{row.component}</td>
+                                  <td className="px-3 py-2">{row.monthly}</td>
+                                  <td className="px-3 py-2">{row.annual}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="form-group">
@@ -516,7 +649,7 @@ const OfferLetterForm = () => {
                   {docxPath && <a href={docxPath} target="_blank" rel="noopener noreferrer">Download DOCX</a>}
                 </div>
                 <div className="flex justify-between mt-6">
-                  <button type="button" onClick={() => setCurrentStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
+                  <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
                     Back
                   </button>
                   <button type="submit" className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all" disabled={loading}>

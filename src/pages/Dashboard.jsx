@@ -78,7 +78,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
         <Navbar user={user} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <DashboardSkeleton />
         </div>
       </div>
@@ -89,7 +89,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
         <Navbar user={user} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-red-500">Failed to load dashboard</div>
         </div>
       </div>
@@ -99,7 +99,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <Navbar user={dashboardData.user} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -107,7 +107,7 @@ const Dashboard = () => {
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8"
         >
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
               Welcome back, <span className="text-teal-600">{dashboardData.user.name}</span>
             </h1>
             <p className="text-gray-600">Here's an overview of your candidates</p>
