@@ -223,6 +223,32 @@ const OfferLetterForm = () => {
     setSalaryBreakdown(null);
   }, []);
 
+  const renderBreakdownValue = (value) => {
+    if (Array.isArray(value)) {
+      return (
+        <div className="space-y-2">
+          {value.map((row, index) => (
+            <div key={index} className="text-sm text-gray-700">
+              {typeof row === 'object' && row !== null
+                ? `${row.component || 'Item'}: ${row.monthly || '-'} / ${row.annual || '-'}`
+                : String(row)}
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    if (value && typeof value === 'object') {
+      return (
+        <div className="text-sm text-gray-700">
+          {Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(', ')}
+        </div>
+      )
+    }
+
+    return <span>{String(value ?? '')}</span>
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
       <Navbar user={user} />
@@ -474,7 +500,8 @@ const OfferLetterForm = () => {
                       {/* Render backend breakdown keys if available, else fallback to frontend */}
                       {Object.entries(salaryBreakdown).map(([key, value]) => (
                         <div key={key}>
-                          <span className="font-bold">{key.replace(/_/g, ' ')}:</span> <span>{value}</span>
+                          <span className="font-bold">{key.replace(/_/g, ' ')}:</span>{' '}
+                          {renderBreakdownValue(value)}
                         </div>
                       ))}
                     </div>
