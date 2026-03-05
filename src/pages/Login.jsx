@@ -35,16 +35,28 @@ const Login = () => {
   ]
 
   return (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat p-4 sm:p-6"
-      style={{ backgroundImage: "url('/images/login.jpg')" }}
-    >
-      <div className="min-h-[calc(100vh-2rem)] sm:min-h-[calc(100vh-3rem)] max-w-7xl mx-auto flex items-center justify-center lg:items-end lg:justify-end">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 p-4 sm:p-6">
+      <div className="min-h-[calc(100vh-2rem)] sm:min-h-[calc(100vh-3rem)] max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+        <div className="hidden lg:flex flex-col justify-center px-6 xl:px-10">
+          <img
+            src="/images/ValueMomentum_logo.png"
+            alt="ValueMomentum Logo"
+            className="h-16 w-auto object-contain mb-8"
+          />
+          <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
+            Offer Letter Management Portal
+          </h1>
+          <p className="mt-4 text-slate-200 text-lg">
+            Secure, streamlined offer generation and communication.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center lg:justify-end">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="w-full max-w-md lg:max-w-lg bg-white/94 backdrop-blur-sm rounded-xl shadow-2xl border border-white/80 p-6 sm:p-7 lg:mr-6 lg:mb-6"
+          className="w-full max-w-md bg-white/95 rounded-xl shadow-2xl border border-white/80 p-6 sm:p-7"
         >
         <div className="mb-7 text-center">
           <img
@@ -115,6 +127,7 @@ const Login = () => {
           </div>
         </div>
         </motion.div>
+        </div>
       </div>
     </div>
   )
