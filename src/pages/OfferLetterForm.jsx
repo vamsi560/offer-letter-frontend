@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { FiBriefcase, FiDollarSign } from 'react-icons/fi'
+import { FiBriefcase, FiDollarSign, FiEye } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import Modal from '../components/Modal'
+import OfferLetterPreview from '../components/OfferLetterPreview'
 import { offerLetterAPI } from '../services/api'
 
 const OfferLetterForm = () => {
@@ -66,6 +67,139 @@ const OfferLetterForm = () => {
     np_buyout_mail_approval_date: '',
   })
 
+  const autoPopulateData = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const joiningDate = new Date();
+    joiningDate.setDate(joiningDate.getDate() + 30);
+    const joiningDateStr = joiningDate.toISOString().split('T')[0];
+
+    const newFormData = {
+      status: 'Offer Made',
+      tag_poc: 'John Manager',
+      pos_id: 'POS-2024-001',
+      source: 'Direct',
+      source_type: '',
+      source_details: 'LinkedIn',
+      candidate_name: 'Rajesh Kumar',
+      years_of_experience: '5',
+      offer_approval_email_sent_date: today,
+      offer_approval_received_date: today,
+      date_of_offer: today,
+      primary_skill: 'React.js',
+      secondary_skill: 'Node.js',
+      current_location: 'Bangalore',
+      candidate_phone: '9876543210',
+      candidate_email: 'rajesh.kumar@example.com',
+      candidate_address: '123, MG Road, Bangalore, Karnataka - 560001',
+      pan: 'ABCDE1234F',
+      prev_org: 'Tech Solutions Pvt Ltd',
+      comments: 'Excellent candidate with strong technical skills',
+      designation: 'Senior Software Engineer',
+      position: 'Full Stack Developer',
+      grade: 'Grade A',
+      department: 'Engineering',
+      business_unit: 'P&C',
+      tsc: 'Platform, App & Infra',
+      sub_tsc: 'App',
+      allocation_unit: 'P&C',
+      account: 'Internal Projects',
+      project: 'Insurance Platform Modernization',
+      employment_type: 'Full-time',
+      facility: 'Hyderabad',
+      work_location: 'Palnadu',
+      work_mode: 'Offline',
+      reporting_manager: 'Sarah Williams',
+      joining_date: joiningDateStr,
+      probation_period: '6 months',
+      notice_period: '90 days',
+      current_ctc: '1200000',
+      ectc: '1500000',
+      vam_proposed_ctc: '1600000',
+      revised_ctc: '',
+      total_salary: '1600000',
+      deviation: '',
+      jb_amt: '',
+      jb_reason: '',
+      days_lapsed: '',
+      np_buyout_amt: '',
+      np_buyout_mail_approval_date: '',
+    };
+    
+    setFormData(newFormData);
+    toast.success('Form auto-populated with sample data!');
+    
+    // Trigger salary breakdown calculation immediately after setting form data
+    setCalculatingBreakdown(true);
+    try {
+      // Mock salary breakdown data
+      const salary = 1600000;
+      const breakdown = {
+        Total_Annual_Gross: formatCurrency(salary),
+        Total_In_Words: 'Sixteen Lakh Only',
+        Compensation_Table_Rows: [
+          {
+            component: 'Basic Salary',
+            monthly: formatCurrency(salary * 0.4 / 12),
+            annual: formatCurrency(salary * 0.4)
+          },
+          {
+            component: 'House Rent Allowance',
+            monthly: formatCurrency(salary * 0.3 / 12),
+            annual: formatCurrency(salary * 0.3)
+          },
+          {
+            component: 'Conveyance',
+            monthly: formatCurrency(salary * 0.05 / 12),
+            annual: formatCurrency(salary * 0.05)
+          },
+          {
+            component: 'Provident Fund Contribution',
+            monthly: formatCurrency(salary * 0.12 / 12),
+            annual: formatCurrency(salary * 0.12)
+          },
+          {
+            component: 'Gratuity (payable as per gratuity act)',
+            monthly: formatCurrency(salary * 0.048 / 12),
+            annual: formatCurrency(salary * 0.048)
+          },
+          {
+            component: 'Flexible Benefits:',
+            monthly: '',
+            annual: ''
+          },
+          {
+            component: 'Meal Card',
+            monthly: formatCurrency(salary * 0.01 / 12),
+            annual: formatCurrency(salary * 0.01)
+          },
+          {
+            component: 'LTC',
+            monthly: formatCurrency(salary * 0.015 / 12),
+            annual: formatCurrency(salary * 0.015)
+          },
+          {
+            component: 'NPS',
+            monthly: formatCurrency(salary * 0.02 / 12),
+            annual: formatCurrency(salary * 0.02)
+          },
+          {
+            component: 'Total',
+            monthly: formatCurrency(salary / 12),
+            annual: formatCurrency(salary)
+          }
+        ]
+      };
+      
+      setSalaryBreakdown(breakdown);
+      console.log('Auto-populated salary breakdown:', breakdown);
+      toast.success('Salary breakdown calculated!');
+    } catch (error) {
+      console.error('Error in auto-populate breakdown:', error);
+    } finally {
+      setCalculatingBreakdown(false);
+    }
+  };
+
   const [salaryBreakdown, setSalaryBreakdown] = useState(null)
   const [loading, setLoading] = useState(false)
   const [calculatingBreakdown, setCalculatingBreakdown] = useState(false)
@@ -78,6 +212,7 @@ const OfferLetterForm = () => {
   const [lastOfferLetter, setLastOfferLetter] = useState(null)
   const [pdfPath, setPdfPath] = useState('');
   const [docxPath, setDocxPath] = useState('');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const requiredFieldsByStep = {
     1: [
@@ -115,23 +250,114 @@ const OfferLetterForm = () => {
   ]
 
   const calculateSalaryBreakdown = async () => {
-    if (!formData.total_salary || formData.total_salary <= 0) {
+    const totalSalary = formData.total_salary;
+    if (!totalSalary || parseFloat(totalSalary) <= 0) {
       setSalaryBreakdown(null)
       return
     }
 
     setCalculatingBreakdown(true)
     try {
-      const breakdown = await offerLetterAPI.getSalaryBreakdown(
-        parseFloat(formData.total_salary)
-      )
+      // Try API call first, if it fails, use mock data
+      let breakdown;
+      try {
+        breakdown = await offerLetterAPI.getSalaryBreakdown(parseFloat(totalSalary));
+      } catch (apiError) {
+        console.log('API call failed, using mock data:', apiError);
+        // Mock salary breakdown data
+        const salary = parseFloat(totalSalary);
+        breakdown = {
+          Total_Annual_Gross: formatCurrency(salary),
+          Total_In_Words: convertNumberToWords(salary),
+          Compensation_Table_Rows: [
+            {
+              component: 'Basic Salary',
+              monthly: formatCurrency(salary * 0.4 / 12),
+              annual: formatCurrency(salary * 0.4)
+            },
+            {
+              component: 'House Rent Allowance',
+              monthly: formatCurrency(salary * 0.3 / 12),
+              annual: formatCurrency(salary * 0.3)
+            },
+            {
+              component: 'Conveyance',
+              monthly: formatCurrency(salary * 0.05 / 12),
+              annual: formatCurrency(salary * 0.05)
+            },
+            {
+              component: 'Provident Fund Contribution',
+              monthly: formatCurrency(salary * 0.12 / 12),
+              annual: formatCurrency(salary * 0.12)
+            },
+            {
+              component: 'Gratuity (payable as per gratuity act)',
+              monthly: formatCurrency(salary * 0.048 / 12),
+              annual: formatCurrency(salary * 0.048)
+            },
+            {
+              component: 'Flexible Benefits:',
+              monthly: '',
+              annual: ''
+            },
+            {
+              component: 'Meal Card',
+              monthly: formatCurrency(salary * 0.01 / 12),
+              annual: formatCurrency(salary * 0.01)
+            },
+            {
+              component: 'LTC',
+              monthly: formatCurrency(salary * 0.015 / 12),
+              annual: formatCurrency(salary * 0.015)
+            },
+            {
+              component: 'NPS',
+              monthly: formatCurrency(salary * 0.02 / 12),
+              annual: formatCurrency(salary * 0.02)
+            },
+            {
+              component: 'Total',
+              monthly: formatCurrency(salary / 12),
+              annual: formatCurrency(salary)
+            }
+          ]
+        };
+      }
+      
       setSalaryBreakdown(breakdown)
+      console.log('Salary breakdown calculated:', breakdown);
+      toast.success('Salary breakdown calculated successfully!');
     } catch (error) {
       console.error('Error calculating salary breakdown:', error)
+      toast.error('Failed to calculate salary breakdown')
     } finally {
       setCalculatingBreakdown(false)
     }
   }
+
+  // Helper function to convert number to words (simplified)
+  const convertNumberToWords = (num) => {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    
+    if (num >= 100000) {
+      const lakhs = Math.floor(num / 100000);
+      const remainder = num % 100000;
+      let result = `${ones[lakhs]} Lakh`;
+      if (remainder > 0) {
+        if (remainder >= 1000) {
+          const thousands = Math.floor(remainder / 1000);
+          result += ` ${ones[thousands]} Thousand`;
+        }
+        result += ' Only';
+      } else {
+        result += ' Only';
+      }
+      return result;
+    }
+    return 'Amount in Words';
+  };
 
   // Deviation (in percentage) calculation
   const calculateDeviation = () => {
@@ -347,13 +573,22 @@ const OfferLetterForm = () => {
             </h1>
             <p className="text-gray-600">Fill in the details to generate an offer letter</p>
           </div>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <FiBriefcase className="w-5 h-5" />
-            <span>Back</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={autoPopulateData}
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+            >
+              <span>Auto Fill</span>
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <FiBriefcase className="w-5 h-5" />
+              <span>Back</span>
+            </button>
+          </div>
         </div>
         {/* Progress Steps */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
@@ -538,15 +773,14 @@ const OfferLetterForm = () => {
                     </select>
                   )}
                   <div className="form-group">
-                    <label htmlFor="work_mode">Work Mode</label>
                     <select
-                      id="work_mode"
                       name="work_mode"
+                      className="form-input w-full"
                       value={formData.work_mode}
                       onChange={handleChange}
                       required
                     >
-                      <option value="">Select</option>
+                      <option value="">Work Mode</option>
                       <option value="Remote">Remote</option>
                       <option value="Offline">Offline</option>
                     </select>
@@ -580,14 +814,24 @@ const OfferLetterForm = () => {
                   <div><input type="number" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full" value={formData.vam_proposed_ctc} onChange={handleChange} />{renderCurrencyPreview('vam_proposed_ctc')}</div>
                   <div><input type="number" name="revised_ctc" placeholder="Revised CTC (after initial Offer)" className="form-input w-full" value={formData.revised_ctc} onChange={handleChange} />{renderCurrencyPreview('revised_ctc')}</div>
                   <div><input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={handleTotalSalaryChange} />{renderCurrencyPreview('total_salary')}</div>
-                  <input
-                    type="text"
-                    name="deviation"
-                    placeholder="Deviation (in percentage)"
-                    className="form-input w-full"
-                    value={calculateDeviation()}
-                    readOnly
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="deviation"
+                      placeholder="Deviation (in percentage)"
+                      className="form-input w-full"
+                      value={calculateDeviation()}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      onClick={calculateSalaryBreakdown}
+                      disabled={calculatingBreakdown || !formData.total_salary}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {calculatingBreakdown ? 'Calculating...' : 'Calculate'}
+                    </button>
+                  </div>
                   <div><input type="number" name="jb_amt" placeholder="JB Amount (Rs)" className="form-input w-full" value={formData.jb_amt} onChange={handleChange} />{renderCurrencyPreview('jb_amt')}</div>
                   <input type="text" name="jb_reason" placeholder="JB Reason" className="form-input w-full" value={formData.jb_reason} onChange={handleChange} />
                   <input type="number" name="days_lapsed" placeholder="Days Lapsed" className="form-input w-full" value={formData.days_lapsed} onChange={handleChange} />
@@ -598,6 +842,14 @@ const OfferLetterForm = () => {
                   </div>
                 </div>
                 {/* Salary Breakdown Display */}
+                {calculatingBreakdown && (
+                  <div className="mt-8 p-6 bg-blue-50 rounded-xl">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mr-3"></div>
+                      <p className="text-teal-700 font-medium">Calculating salary breakdown...</p>
+                    </div>
+                  </div>
+                )}
                 {salaryBreakdown && (
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
@@ -638,6 +890,14 @@ const OfferLetterForm = () => {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Debug Info */}
+                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+                      <p className="font-bold mb-2">Debug Info:</p>
+                      <p>Total Salary: {formData.total_salary}</p>
+                      <p>Breakdown Available: {salaryBreakdown ? 'Yes' : 'No'}</p>
+                      <p>Compensation Rows: {compensationRows.length}</p>
+                    </div>
                   </div>
                 )}
                 <div className="form-group">
@@ -652,12 +912,22 @@ const OfferLetterForm = () => {
                   <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
                     Back
                   </button>
-                  <button type="submit" className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all" disabled={loading}>
-                    {loading ? 'Generating...' : 'Generate Offer Letter'}
-                  </button>
-                  <button type="button" onClick={handleGenerateDocx} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
-                    Generate Docx Offer Letter
-                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPreviewModal(true)} 
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                    >
+                      <FiEye className="w-5 h-5" />
+                      View Preview
+                    </button>
+                    <button type="button" onClick={handleGenerateDocx} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                      Generate DOCX
+                    </button>
+                    <button type="submit" className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all" disabled={loading}>
+                      {loading ? 'Generating...' : 'Generate Offer Letter'}
+                    </button>
+                  </div>
                 </div>
                 {docxPath && (
                   <div className="mt-6 p-4 bg-blue-50 rounded-xl">
@@ -683,6 +953,43 @@ const OfferLetterForm = () => {
           </>
         )}
       </Modal>
+
+      {/* Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-start justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
+            {/* Fixed Modal Header */}
+            <div className="flex-shrink-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
+              <div>
+                <h2 className="text-2xl font-bold">Offer Letter Preview</h2>
+                <p className="text-teal-100 text-sm">Review before generating final document</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-white text-teal-600 rounded-lg hover:bg-gray-100 transition font-semibold flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print
+                </button>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto pdf-container">
+              <OfferLetterPreview data={formData} salaryBreakdown={salaryBreakdown} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

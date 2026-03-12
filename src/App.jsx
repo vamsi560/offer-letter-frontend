@@ -6,6 +6,9 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import OfferLetterForm from './pages/OfferLetterForm'
 import PrivateRoute from './components/PrivateRoute'
+import OfferLetterPreviewPage from './pages/OfferLetterPreviewPage';
+
+// In your App.jsx or routing
 
 function App() {
   return (
@@ -21,6 +24,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/offer-letter/preview" element={<OfferLetterPreviewPage />} />
           <Route
             path="/offer-letter"
             element={
