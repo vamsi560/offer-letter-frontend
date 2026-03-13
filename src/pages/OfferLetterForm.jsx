@@ -853,51 +853,29 @@ const OfferLetterForm = () => {
                 {salaryBreakdown && (
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Render backend breakdown keys if available, else fallback to frontend */}
-                      {Object.entries(salaryBreakdown)
-                        .filter(([key]) => key !== 'Compensation_Table_Rows')
-                        .map(([key, value]) => (
-                        <div key={key}>
-                          <span className="font-bold">{key.replace(/_/g, ' ')}:</span>{' '}
-                          {renderBreakdownValue(value)}
-                        </div>
-                      ))}
-                    </div>
-
+                    
                     {compensationRows.length > 0 && (
-                      <div className="mt-6">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Compensation Details</h4>
-                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                          <table className="min-w-full text-sm">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Component</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Monthly</th>
-                                <th className="text-left px-3 py-2 font-semibold text-gray-700">Annual</th>
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Component</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Monthly</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Annual</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {compensationRows.map((row, idx) => (
+                              <tr key={`${row.component}-${idx}`} className="border-t border-gray-100">
+                                <td className="px-3 py-2">{row.component}</td>
+                                <td className="px-3 py-2">{row.monthly}</td>
+                                <td className="px-3 py-2">{row.annual}</td>
                               </tr>
-                            </thead>
-                            <tbody>
-                              {compensationRows.map((row, idx) => (
-                                <tr key={`${row.component}-${idx}`} className="border-t border-gray-100">
-                                  <td className="px-3 py-2">{row.component}</td>
-                                  <td className="px-3 py-2">{row.monthly}</td>
-                                  <td className="px-3 py-2">{row.annual}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
-                    
-                    {/* Debug Info */}
-                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
-                      <p className="font-bold mb-2">Debug Info:</p>
-                      <p>Total Salary: {formData.total_salary}</p>
-                      <p>Breakdown Available: {salaryBreakdown ? 'Yes' : 'No'}</p>
-                      <p>Compensation Rows: {compensationRows.length}</p>
-                    </div>
                   </div>
                 )}
                 <div className="form-group">
