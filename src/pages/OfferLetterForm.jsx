@@ -943,15 +943,135 @@ const OfferLetterForm = () => {
                 <p className="text-teal-100 text-sm">Review before generating final document</p>
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={() => window.print()}
+                {/* <button
+                  onClick={() => {
+                    // Create a new window with just the preview content
+                    const printWindow = window.open('', '_blank', 'width=800,height=600');
+                    const previewElement = document.querySelector('.print-content');
+                    
+                    if (printWindow && previewElement) {
+                      printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <title>Offer Letter - ${formData.candidate_name || 'Candidate'}</title>
+                          <style>
+                            * {
+                              margin: 0;
+                              padding: 0;
+                              box-sizing: border-box;
+                            }
+                            body {
+                              font-family: 'Times New Roman', serif;
+                              background: white;
+                              color: black;
+                              line-height: 1.5;
+                            }
+                            @page {
+                              size: A4;
+                              margin: 15mm;
+                            }
+                            .pdf-page {
+                              width: 100%;
+                              min-height: 297mm;
+                              padding: 20mm;
+                              background: white;
+                              page-break-after: always;
+                              margin-bottom: 20px;
+                            }
+                            .pdf-page:last-child {
+                              page-break-after: avoid;
+                              margin-bottom: 0;
+                            }
+                            table {
+                              width: 100%;
+                              border-collapse: collapse;
+                              margin: 10px 0;
+                            }
+                            th, td {
+                              border: 1px solid black;
+                              padding: 8px;
+                              text-align: left;
+                            }
+                            th {
+                              background-color: #f0f0f0;
+                              font-weight: bold;
+                            }
+                            .text-center { text-align: center; }
+                            .text-right { text-align: right; }
+                            .font-bold { font-weight: bold; }
+                            .underline { text-decoration: underline; }
+                            .border-b { border-bottom: 2px solid black; padding-bottom: 10px; }
+                            .border-t { border-top: 2px solid black; padding-top: 10px; }
+                            .border-l-4 { border-left: 4px solid black; padding-left: 10px; }
+                            .bg-gray-50 { background-color: #f9f9f9; }
+                            .bg-gray-100 { background-color: #f3f3f3; }
+                            .bg-black { background-color: black; color: white; }
+                            .text-black { color: black; }
+                            .p-3 { padding: 12px; }
+                            .p-4 { padding: 16px; }
+                            .mb-2 { margin-bottom: 8px; }
+                            .mb-4 { margin-bottom: 16px; }
+                            .mb-6 { margin-bottom: 24px; }
+                            .mt-4 { margin-top: 16px; }
+                            .mt-6 { margin-top: 24px; }
+                            .grid { display: grid; }
+                            .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+                            .gap-1 { gap: 4px; }
+                            .gap-2 { gap: 8px; }
+                            .flex { display: flex; }
+                            .justify-between { justify-content: space-between; }
+                            .items-center { align-items: center; }
+                            .space-y-1 > * + * { margin-top: 4px; }
+                            .space-y-4 > * + * { margin-top: 16px; }
+                            .space-y-5 > * + * { margin-top: 20px; }
+                            .text-xs { font-size: 10px; }
+                            .text-sm { font-size: 12px; }
+                            .text-lg { font-size: 18px; }
+                            .text-xl { font-size: 20px; }
+                            .text-2xl { font-size: 24px; }
+                            .leading-tight { line-height: 1.25; }
+                            .leading-relaxed { line-height: 1.6; }
+                            img { max-width: 100px; height: auto; }
+                            @media print {
+                              body { background: white !important; }
+                              .pdf-page { 
+                                border: none !important; 
+                                margin-bottom: 0 !important;
+                                box-shadow: none !important;
+                                page-break-after: always;
+                              }
+                              .pdf-page:last-child {
+                                page-break-after: avoid;
+                              }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          ${previewElement.innerHTML}
+                        </body>
+                        </html>
+                      `);
+                      
+                      printWindow.document.close();
+                      
+                      // Wait for content to load then print
+                      setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                      }, 500);
+                    } else {
+                      toast.error('Unable to open print preview');
+                    }
+                  }}
                   className="px-4 py-2 bg-white text-teal-600 rounded-lg hover:bg-gray-100 transition font-semibold flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                   </svg>
-                  Print
-                </button>
+                  Print Preview
+                </button> */}
                 <button
                   onClick={() => setShowPreviewModal(false)}
                   className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold"

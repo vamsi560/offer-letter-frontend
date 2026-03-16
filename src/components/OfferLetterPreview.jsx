@@ -33,9 +33,9 @@ const OfferLetterPreview = ({ data = {}, salaryBreakdown = null }) => {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gray-100 p-4" style={{ fontFamily: 'Times New Roman, serif' }}>
+    <div className="w-full max-w-4xl mx-auto bg-gray-100 p-4 print-content" style={{ fontFamily: 'Times New Roman, serif' }}>
       {/* Page 1 - Main Offer Letter */}
-      <div className="relative bg-white shadow-lg border border-gray-300 mb-6" style={{ 
+      <div className="relative bg-white shadow-lg border border-gray-300 mb-6 pdf-page" style={{ 
         width: '210mm', 
         minHeight: '297mm', 
         pageBreakAfter: 'always',
@@ -168,7 +168,7 @@ const OfferLetterPreview = ({ data = {}, salaryBreakdown = null }) => {
       </div>
 
       {/* Page 2 - Terms & Compensation */}
-      <div className="relative bg-white shadow-lg border border-gray-300" style={{ 
+      <div className="relative bg-white shadow-lg border border-gray-300 pdf-page" style={{ 
         width: '210mm', 
         minHeight: '297mm', 
         boxShadow: '0 4px 8px rgba(0,0,0,0.1), 0 6px 20px rgba(0,0,0,0.1)'

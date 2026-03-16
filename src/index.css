@@ -62,11 +62,34 @@
     padding: 0;
   }
 
+  /* Hide everything except the preview content when printing */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-content,
+  .print-content * {
+    visibility: visible;
+  }
+
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Hide modal and form elements */
   .fixed,
   button,
   nav,
-  .modal-header {
+  .modal-header,
+  .form-input,
+  .card,
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
     display: none !important;
+    visibility: hidden !important;
   }
 
   .shadow-2xl,
@@ -77,7 +100,7 @@
 
   @page {
     size: A4;
-    margin: 0;
+    margin: 15mm;
   }
 
   .page-break {
@@ -86,17 +109,44 @@
 
   /* PDF-like styling for print */
   .pdf-page {
-    width: 210mm !important;
-    min-height: 297mm !important;
+    width: 100% !important;
+    min-height: auto !important;
     margin: 0 !important;
-    padding: 20mm !important;
+    padding: 15mm !important;
     background: white !important;
     border: none !important;
     box-shadow: none !important;
+    page-break-after: always;
+  }
+
+  .pdf-page:last-child {
+    page-break-after: avoid;
   }
 
   .pdf-container {
     background: white !important;
     padding: 0 !important;
+  }
+
+  /* Ensure preview content is visible */
+  .print-content .pdf-page {
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  /* Hide the gray background container */
+  .bg-gray-100 {
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* Make sure text is black */
+  * {
+    color: black !important;
+  }
+
+  /* Hide modal overlay */
+  .fixed.inset-0 {
+    display: none !important;
   }
 }
