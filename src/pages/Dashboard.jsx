@@ -10,21 +10,98 @@ import {
   FiMail,
   FiPhone,
   FiBriefcase,
-  FiCalendar
+  FiCalendar,
+  FiDownload
 } from 'react-icons/fi'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import Navbar from '../components/Navbar'
-import { dashboardAPI } from '../services/api'
+import { dashboardAPI, offerLetterAPI } from '../services/api'
 import { DashboardSkeleton } from '../components/LoadingSkeleton'
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [downloadingPdf, setDownloadingPdf] = useState({})
   const navigate = useNavigate()
 
   useEffect(() => {
     loadDashboard()
   }, [])
+
+  const handleDownloadPdf = async (candidate) => {
+    setDownloadingPdf(prev => ({ ...prev, [candidate.id]: true }));
+    
+    try {
+      if (candidate.pdf_path) {
+        // Use the existing PDF path from the API
+        const pdfUrl = candidate.pdf_path;
+        
+        // Create a temporary anchor element to trigger download
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `offer_letter_${candidate.name.replace(/\s+/g, '_')}.pdf`;
+        link.target = '_blank';
+        
+        // For blob URLs or external URLs, we need to fetch and download
+        try {
+          const response = await fetch(pdfUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/pdf',
+            },
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            
+            link.href = downloadUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up the object URL
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            toast.success(`PDF downloaded: ${candidate.name}`);
+          } else {
+            throw new Error('Failed to fetch PDF');
+          }
+        } catch (fetchError) {
+          // Fallback: try direct link opening
+          console.log('Direct fetch failed, trying direct link:', fetchError);
+          window.open(pdfUrl, '_blank');
+          toast.success('PDF opened in new tab');
+        }
+      } else {
+        // Generate PDF if it doesn't exist (fallback)
+        const response = await offerLetterAPI.generate({
+          candidate_name: candidate.name,
+          candidate_email: candidate.email,
+          designation: candidate.position,
+          total_salary: candidate.salary || 1600000,
+          date_of_offer: candidate.offer_date || new Date().toISOString().split('T')[0],
+          joining_date: candidate.joining_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          facility: candidate.facility || 'Hyderabad',
+          work_mode: candidate.work_mode || 'Offline',
+          grade: candidate.grade || 'Grade A',
+          tsc: candidate.tsc || 'Platform, App & Infra'
+        });
+        
+        if (response.pdf_path) {
+          window.open(response.pdf_path, '_blank');
+          toast.success('PDF generated and opened');
+        } else {
+          toast.error('Failed to generate PDF');
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF. Please try again.');
+    } finally {
+      setDownloadingPdf(prev => ({ ...prev, [candidate.id]: false }));
+    }
+  };
 
   const loadDashboard = async () => {
     try {
@@ -237,20 +314,38 @@ const Dashboard = () => {
                           )}
                         </td>
                         <td className="py-4 px-4">
-                          {candidate.status === 'Pending' && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() =>
-                                navigate('/offer-letter', {
-                                  state: { candidate }
-                                })
-                              }
-                              className="px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white text-sm rounded-lg hover:shadow-lg transition-all duration-300"
-                            >
-                              Send Offer
-                            </motion.button>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            {candidate.status === 'Pending' && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() =>
+                                  navigate('/offer-letter', {
+                                    state: { candidate }
+                                  })
+                                }
+                                className="px-3 py-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white text-sm rounded-lg hover:shadow-lg transition-all duration-300"
+                              >
+                                Send Offer
+                              </motion.button>
+                            )}
+                            {(candidate.status === 'Offer Sent' && candidate.pdf_path) && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleDownloadPdf(candidate)}
+                                disabled={downloadingPdf[candidate.id]}
+                                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-50"
+                                title="Download PDF"
+                              >
+                                {downloadingPdf[candidate.id] ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                ) : (
+                                  <FiDownload className="w-4 h-4" />
+                                )}
+                              </motion.button>
+                            )}
+                          </div>
                         </td>
                       </motion.tr>
                     ))}
