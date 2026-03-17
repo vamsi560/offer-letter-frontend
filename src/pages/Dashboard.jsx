@@ -315,6 +315,11 @@ const Dashboard = () => {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
+                            {/* Debug info - remove after testing */}
+                            <div className="text-xs text-gray-500">
+                              Status: {candidate.status} | PDF: {candidate.pdf_path ? 'Yes' : 'No'}
+                            </div>
+                            
                             {candidate.status === 'Pending' && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
@@ -329,7 +334,9 @@ const Dashboard = () => {
                                 Send Offer
                               </motion.button>
                             )}
-                            {(candidate.status === 'Offer Sent' && candidate.pdf_path) && (
+                            
+                            {/* Always show download button for testing */}
+                            {candidate.pdf_path && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -344,6 +351,13 @@ const Dashboard = () => {
                                   <FiDownload className="w-4 h-4" />
                                 )}
                               </motion.button>
+                            )}
+                            
+                            {/* Fallback button for testing */}
+                            {!candidate.pdf_path && candidate.status === 'Offer Sent' && (
+                              <div className="px-3 py-2 bg-red-500 text-white text-xs rounded">
+                                No PDF
+                              </div>
                             )}
                           </div>
                         </td>
