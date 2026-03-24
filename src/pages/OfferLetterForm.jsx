@@ -378,9 +378,10 @@ const OfferLetterForm = () => {
     }))
   }
 
+  // Only update the value, do not call salary breakdown here
   const handleTotalSalaryChange = (e) => {
     handleChange(e);
-    calculateSalaryBreakdown();
+    // Do NOT call calculateSalaryBreakdown here
   };
 
   const handleSubmit = async (e) => {
@@ -558,9 +559,24 @@ const OfferLetterForm = () => {
     return <span>{String(value ?? '')}</span>
   }
 
-  const compensationRows = Array.isArray(salaryBreakdown?.Compensation_Table_Rows)
-    ? salaryBreakdown.Compensation_Table_Rows
-    : []
+  // Add a row for 'Total Gross' at the end of the breakdown
+  let compensationRows = Array.isArray(salaryBreakdown?.Compensation_Table_Rows)
+    ? salaryBreakdown.Compensation_Table_Rows.slice()
+    : [];
+
+  // Remove any previous 'Total' row to avoid duplication
+  compensationRows = compensationRows.filter(row => !(row.component && row.component.toLowerCase().includes('total')));
+
+  if (formData.total_salary) {
+    const totalSalary = parseFloat(formData.total_salary);
+    const monthlyGross = (totalSalary / 12).toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+    const annualGross = totalSalary.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+    compensationRows.push({
+      component: 'Total Gross',
+      monthly: monthlyGross,
+      annual: annualGross,
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
@@ -853,7 +869,6 @@ const OfferLetterForm = () => {
                 {salaryBreakdown && (
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
-                    
                     {compensationRows.length > 0 && (
                       <div className="overflow-x-auto border border-gray-200 rounded-lg">
                         <table className="min-w-full text-sm">
@@ -876,6 +891,7 @@ const OfferLetterForm = () => {
                         </table>
                       </div>
                     )}
+
                   </div>
                 )}
                 <div className="form-group">
