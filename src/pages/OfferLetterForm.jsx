@@ -1,3 +1,38 @@
+// Map API salary breakdown keys to UI keys
+function mapSalaryBreakdown(apiData) {
+  return {
+    basicMonthly: apiData.Monthly_Basic,
+    basicAnnual: apiData.Annual_Basic,
+    hraMonthly: apiData.Monthly_HRA,
+    hraAnnual: apiData.Annual_HRA,
+    conveyanceMonthly: apiData.Monthly_Conveyance || apiData["Monthly__Conveyance"],
+    conveyanceAnnual: apiData.Annual_Conveyance || apiData["Annual__Conveyance"],
+    ltaMonthly: apiData.Monthly_LTC,
+    ltaAnnual: apiData.Annual_LTC,
+    foodMonthly: apiData.Monthly_Sodexo,
+    foodAnnual: apiData.Annual_Sodexo,
+    employerPfMonthly: apiData.Monthly_PF,
+    employerPfAnnual: apiData.Annual_PF,
+    gratuityMonthly: apiData.Monthly_Gratuity,
+    gratuityAnnual: apiData.Annual_Gratuity,
+    professionalTaxMonthly: apiData.Professional_Tax,
+    professionalTaxAnnual: apiData.Annual_Professional_Tax,
+    totalEarningsMonthly: apiData.Monthly_Gross,
+    totalEarningsAnnual: apiData.Annual_Gross,
+    statutoryTotalMonthly: apiData.Monthly_PF, // Adjust if needed
+    statutoryTotalAnnual: apiData.Annual_PF,   // Adjust if needed
+    ctcMonthly: apiData.Monthly_Gross,
+    ctcAnnual: apiData.Annual_Gross,
+    deductionPfMonthly: apiData.Monthly_PF,
+    deductionPfAnnual: apiData.Annual_PF,
+    deductionGratuityMonthly: apiData.Monthly_Gratuity,
+    deductionGratuityAnnual: apiData.Annual_Gratuity,
+    totalDeductionsMonthly: apiData.Total_Monthly_Deductions,
+    totalDeductionsAnnual: apiData.Total_Annual_Deductions,
+    Total_In_Words: apiData.Total_In_Words,
+    Compensation_Table_Rows: apiData.Compensation_Table_Rows,
+  };
+}
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -262,6 +297,7 @@ const OfferLetterForm = () => {
       let breakdown;
       try {
         breakdown = await offerLetterAPI.getSalaryBreakdown(parseFloat(totalSalary));
+        breakdown = mapSalaryBreakdown(breakdown);
       } catch (apiError) {
         console.log('API call failed, using mock data:', apiError);
         // Mock salary breakdown data
@@ -869,29 +905,40 @@ const OfferLetterForm = () => {
                 {salaryBreakdown && (
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                     <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
-                    {compensationRows.length > 0 && (
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full text-sm">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Component</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Monthly</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-700">Annual</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {compensationRows.map((row, idx) => (
-                              <tr key={`${row.component}-${idx}`} className="border-t border-gray-100">
-                                <td className="px-3 py-2">{row.component}</td>
-                                <td className="px-3 py-2">{row.monthly}</td>
-                                <td className="px-3 py-2">{row.annual}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="min-w-full text-sm border border-gray-300">
+                        <thead>
+                          <tr className="bg-blue-100">
+                            <th className="px-3 py-2 text-center font-bold" colSpan="3">Component A - Earnings</th>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold">Earnings</th>
+                            <th className="px-3 py-2 text-right font-semibold">Monthly Amount</th>
+                            <th className="px-3 py-2 text-right font-semibold">Annual</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr><td className="px-3 py-2">Basic Salary</td><td className="px-3 py-2 text-right">{salaryBreakdown?.basicMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">House Rent Allowance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.hraMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Conveyance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">LTA</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Food allowance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.foodMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Earnings</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
+                          <tr className="bg-blue-100"><th className="px-3 py-2 text-center font-bold" colSpan="3">Component B - Statutory Benefits</th></tr>
+                          <tr className="bg-gray-50"><th className="px-3 py-2 text-left font-semibold">Statutory Benefits</th><th></th><th></th></tr>
+                          <tr><td className="px-3 py-2">Employer PF</td><td className="px-3 py-2 text-right">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Gratuity</td><td className="px-3 py-2 text-right">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Total</td><td className="px-3 py-2 text-right">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Annual CTC (A+B)</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
+                          <tr className="bg-blue-100"><th className="px-3 py-2 text-center font-bold" colSpan="3">Deductions</th></tr>
+                          <tr><td className="px-3 py-2">Provident Fund (Employee & Employer)</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Gratuity</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Professional Tax</td><td className="px-3 py-2 text-right">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Deductions</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-2">Income Tax</td><td></td><td className="px-3 py-2 text-right">As applicable</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
                 <div className="form-group">

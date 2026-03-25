@@ -222,37 +222,34 @@ const OfferLetterPreview = ({ data = {}, salaryBreakdown = null }) => {
               
               <table className="w-full border-collapse border-2 border-black text-sm bg-white">
                 <thead>
-                  <tr className="bg-gray-200">
-                    <th className="border border-black p-3 text-left font-bold">Components</th>
-                    <th className="border border-black p-3 text-right font-bold">Monthly (₹)</th>
-                    <th className="border border-black p-3 text-right font-bold">Annual (₹)</th>
+                  <tr className="bg-blue-100">
+                    <th className="border border-black p-3 text-center font-bold" colSpan="3">Component A - Earnings</th>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <th className="border border-black p-2 text-left font-semibold">Earnings</th>
+                    <th className="border border-black p-2 text-right font-semibold">Monthly Amount</th>
+                    <th className="border border-black p-2 text-right font-semibold">Annual</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {salaryBreakdown?.Compensation_Table_Rows ? (
-                    salaryBreakdown.Compensation_Table_Rows.map((row, idx) => (
-                      <tr key={idx} className={`${row.component?.includes('Total') ? 'font-bold bg-gray-100' : ''} ${row.component?.includes('Flexible') ? 'font-bold bg-gray-50' : ''}`}>
-                        <td className={`border border-black p-2 ${row.component?.includes('Meal') || row.component?.includes('LTC') || row.component?.includes('NPS') ? 'pl-6 text-gray-700' : ''}`}>
-                          {row.component}
-                        </td>
-                        <td className="border border-black p-2 text-right font-mono">{row.monthly || '-'}</td>
-                        <td className="border border-black p-2 text-right font-mono">{row.annual || '-'}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <>
-                      <tr><td className="border border-black p-2">Basic Salary</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2">House Rent Allowance</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2">Conveyance</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2">Provident Fund</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2">Gratuity</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr className="font-bold bg-gray-50"><td className="border border-black p-2">Flexible Benefits:</td><td className="border border-black p-2"></td><td className="border border-black p-2"></td></tr>
-                      <tr><td className="border border-black p-2 pl-6">Meal Card</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2 pl-6">LTC</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr><td className="border border-black p-2 pl-6">NPS</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                      <tr className="font-bold bg-gray-100"><td className="border border-black p-2">Total</td><td className="border border-black p-2 text-right">-</td><td className="border border-black p-2 text-right">-</td></tr>
-                    </>
-                  )}
+                  <tr><td className="border border-black p-2">Basic Salary</td><td className="border border-black p-2 text-right">{salaryBreakdown?.basicMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">House Rent Allowance</td><td className="border border-black p-2 text-right">{salaryBreakdown?.hraMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Conveyance</td><td className="border border-black p-2 text-right">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">LTA</td><td className="border border-black p-2 text-right">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Food allowance</td><td className="border border-black p-2 text-right">{salaryBreakdown?.foodMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
+                  <tr className="font-bold bg-blue-50"><td className="border border-black p-2">Total Earnings</td><td className="border border-black p-2 text-right">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
+                  <tr className="bg-blue-100"><th className="border border-black p-2 text-center font-bold" colSpan="3">Component B - Statutory Benefits</th></tr>
+                  <tr className="bg-gray-50"><th className="border border-black p-2 text-left font-semibold">Statutory Benefits</th><th></th><th></th></tr>
+                  <tr><td className="border border-black p-2">Employer PF</td><td className="border border-black p-2 text-right">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Gratuity</td><td className="border border-black p-2 text-right">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Total</td><td className="border border-black p-2 text-right">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
+                  <tr className="font-bold bg-blue-50"><td className="border border-black p-2">Total Annual CTC (A+B)</td><td className="border border-black p-2 text-right">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
+                  <tr className="bg-blue-100"><th className="border border-black p-2 text-center font-bold" colSpan="3">Deductions</th></tr>
+                  <tr><td className="border border-black p-2">Provident Fund (Employee & Employer)</td><td className="border border-black p-2 text-right">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Gratuity</td><td className="border border-black p-2 text-right">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Professional Tax</td><td className="border border-black p-2 text-right">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
+                  <tr className="font-bold bg-blue-50"><td className="border border-black p-2">Total Deductions</td><td className="border border-black p-2 text-right">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="border border-black p-2 text-right">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
+                  <tr><td className="border border-black p-2">Income Tax</td><td className="border border-black p-2"></td><td className="border border-black p-2 text-right">As applicable</td></tr>
                 </tbody>
               </table>
 
