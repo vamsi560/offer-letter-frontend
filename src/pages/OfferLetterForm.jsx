@@ -1,36 +1,40 @@
-// Map API salary breakdown keys to UI keys
+// Map API salary breakdown keys to UI keys (handles numeric and string values, new API structure)
 function mapSalaryBreakdown(apiData) {
+  const format = (val) =>
+    typeof val === 'number'
+      ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(val)
+      : val || '-';
+
   return {
-    basicMonthly: apiData.Monthly_Basic,
-    basicAnnual: apiData.Annual_Basic,
-    hraMonthly: apiData.Monthly_HRA,
-    hraAnnual: apiData.Annual_HRA,
-    conveyanceMonthly: apiData.Monthly_Conveyance || apiData["Monthly__Conveyance"],
-    conveyanceAnnual: apiData.Annual_Conveyance || apiData["Annual__Conveyance"],
-    ltaMonthly: apiData.Monthly_LTC,
-    ltaAnnual: apiData.Annual_LTC,
-    foodMonthly: apiData.Monthly_Sodexo,
-    foodAnnual: apiData.Annual_Sodexo,
-    employerPfMonthly: apiData.Monthly_PF,
-    employerPfAnnual: apiData.Annual_PF,
-    gratuityMonthly: apiData.Monthly_Gratuity,
-    gratuityAnnual: apiData.Annual_Gratuity,
-    professionalTaxMonthly: apiData.Professional_Tax,
-    professionalTaxAnnual: apiData.Annual_Professional_Tax,
-    totalEarningsMonthly: apiData.Monthly_Gross,
-    totalEarningsAnnual: apiData.Annual_Gross,
-    statutoryTotalMonthly: apiData.Monthly_PF, // Adjust if needed
-    statutoryTotalAnnual: apiData.Annual_PF,   // Adjust if needed
-    ctcMonthly: apiData.Monthly_Gross,
-    ctcAnnual: apiData.Annual_Gross,
-    deductionPfMonthly: apiData.Monthly_PF,
-    deductionPfAnnual: apiData.Annual_PF,
-    deductionGratuityMonthly: apiData.Monthly_Gratuity,
-    deductionGratuityAnnual: apiData.Annual_Gratuity,
-    totalDeductionsMonthly: apiData.Total_Monthly_Deductions,
-    totalDeductionsAnnual: apiData.Total_Annual_Deductions,
-    Total_In_Words: apiData.Total_In_Words,
-    Compensation_Table_Rows: apiData.Compensation_Table_Rows,
+    basicMonthly: format(apiData.Monthly_Basic),
+    basicAnnual: format(apiData.Annual_Basic),
+    hraMonthly: format(apiData.Monthly_HRA),
+    hraAnnual: format(apiData.Annual_HRA),
+    conveyanceMonthly: format(apiData.Monthly_Conveyance),
+    conveyanceAnnual: format(apiData.Annual_Conveyance),
+    ltaMonthly: format(apiData.Monthly_LTA),
+    ltaAnnual: format(apiData.Annual_LTA),
+    foodMonthly: format(apiData.Monthly_Food),
+    foodAnnual: format(apiData.Annual_Food),
+    gratuityMonthly: format(apiData.Monthly_Gratuity),
+    gratuityAnnual: format(apiData.Annual_Gratuity),
+    employerPfMonthly: format(apiData.Employer_PF_Monthly),
+    employerPfAnnual: format(apiData.Employer_PF_Annual),
+    totalEarningsMonthly: format(apiData.Total_Earnings_Monthly),
+    totalEarningsAnnual: format(apiData.Total_Earnings_Annual),
+    statutoryTotalMonthly: format(apiData.Total_Statutory_Monthly),
+    statutoryTotalAnnual: format(apiData.Total_Statutory_Annual),
+    ctcMonthly: format(apiData.Total_Monthly_CTC),
+    ctcAnnual: format(apiData.Total_Annual_CTC),
+    deductionPfMonthly: apiData.Monthly_PF || '-', // string, e.g. "3600(1800 + 1800)"
+    deductionPfAnnual: format(apiData.Annual_PF),
+    professionalTaxMonthly: format(apiData.Monthly_Professional_Tax),
+    professionalTaxAnnual: format(apiData.Annual_Professional_Tax),
+    totalDeductionsMonthly: format(apiData.Total_Deductions_Monthly),
+    totalDeductionsAnnual: format(apiData.Total_Deductions_Annual),
+    netMonthly: format(apiData.Net_Monthly_Salary),
+    netAnnual: format(apiData.Net_Annual_Salary),
+    // Add any additional mappings as needed
   };
 }
 import React, { useState, useEffect } from 'react'
