@@ -38,7 +38,7 @@ function mapSalaryBreakdown(apiData) {
   };
 }
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { FiBriefcase, FiDollarSign, FiEye } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -49,7 +49,9 @@ import { offerLetterAPI } from '../services/api'
 
 const OfferLetterForm = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const candidateId = location.state?.candidateId || null
 
   const [formData, setFormData] = useState({
     // General/Recruitment Section
@@ -532,7 +534,20 @@ const OfferLetterForm = () => {
 
   useEffect(() => {
     setSalaryBreakdown(null);
-  }, []);
+    if (candidateId) {
+      offerLetterAPI.getById(candidateId)
+        .then((data) => {
+          setFormData((prev) => ({
+            ...prev,
+            ...Object.fromEntries(
+              Object.entries(data).map(([k, v]) => [k, v === null || v === undefined ? '' : String(v)])
+            )
+          }))
+          toast.success('Candidate data loaded')
+        })
+        .catch(() => toast.error('Failed to load candidate data'))
+    }
+  }, [candidateId]);
 
   const isPanValid = () => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((formData.pan || '').trim())
 
@@ -625,9 +640,9 @@ const OfferLetterForm = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-              Create New Offer Letter
+              {candidateId ? 'Edit Offer Letter' : 'Create New Offer Letter'}
             </h1>
-            <p className="text-gray-600">Fill in the details to generate an offer letter</p>
+            <p className="text-gray-600">{candidateId ? 'Update the candidate details below' : 'Fill in the details to generate an offer letter'}</p>
           </div>
           <div className="flex gap-3">
             <button

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'https://offer-letter-backend-gcf9d8g7f3ghcfb2.canadacentral-01.azurewebsites.net/api'; // Updated to latest Azure App Service backend URL
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; // Updated to latest Azure App Service backend URL
 
 // Create axios instance
 const api = axios.create({
@@ -80,6 +80,14 @@ export const offerLetterAPI = {
   },
   generateDocx: async (offerData) => {
     const response = await api.post('/offer-letter/generate-docx', offerData)
+    return response.data
+  },
+  updateStatus: async (candidateId, status) => {
+    const response = await api.patch(`/offer-letter/${candidateId}/status`, { status })
+    return response.data
+  },
+  getById: async (candidateId) => {
+    const response = await api.get(`/get-user-details/${candidateId}`)
     return response.data
   }
 }

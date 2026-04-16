@@ -22,6 +22,8 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [downloadingPdf, setDownloadingPdf] = useState({})
+  const [statusMap, setStatusMap] = useState({})
+  const [savingStatus, setSavingStatus] = useState({})
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -103,9 +105,35 @@ const Dashboard = () => {
     }
   };
 
+  const handleStatusChange = (candidateId, value) => {
+    setStatusMap(prev => ({ ...prev, [candidateId]: value }))
+  }
+
+  const handleSaveStatus = async (candidate) => {
+    const newStatus = statusMap[candidate.id]
+    if (!newStatus) return
+    setSavingStatus(prev => ({ ...prev, [candidate.id]: true }))
+    try {
+      await offerLetterAPI.updateStatus(candidate.id, newStatus)
+      setDashboardData(prev => ({
+        ...prev,
+        candidates: prev.candidates.map(c =>
+          c.id === candidate.id ? { ...c, status: newStatus } : c
+        )
+      }))
+      setStatusMap(prev => { const s = { ...prev }; delete s[candidate.id]; return s })
+      toast.success(`Status updated to "${newStatus}"`)
+    } catch (error) {
+      toast.error('Failed to update status')
+    } finally {
+      setSavingStatus(prev => ({ ...prev, [candidate.id]: false }))
+    }
+  }
+
   const loadDashboard = async () => {
     try {
       const data = await dashboardAPI.getDashboard()
+      console.log('Dashboard Data:', data)
       setDashboardData(data)
     } catch (error) {
       toast.error('Failed to load dashboard data')
@@ -268,12 +296,15 @@ const Dashboard = () => {
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-4">
-                          <div className="flex items-center space-x-3">
+                          <div
+                            className="flex items-center space-x-3 cursor-pointer group"
+                            onClick={() => navigate(`/offer-letter`, { state: { candidateId: candidate.id } })}
+                          >
                             <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                               {candidate.name.charAt(0)}
                             </div>
                             <div>
-                              <div className="font-semibold text-gray-800">{candidate.name}</div>
+                              <div className="font-semibold text-gray-800 group-hover:text-teal-600 transition-colors underline-offset-2 group-hover:underline">{candidate.name}</div>
                               <div className="text-sm text-gray-500 flex items-center space-x-1">
                                 <FiMail className="w-3 h-3" />
                                 <span>{candidate.email}</span>
@@ -288,20 +319,28 @@ const Dashboard = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                              candidate.status === 'Offer Sent'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {candidate.status === 'Offer Sent' ? (
-                              <FiCheckCircle className="w-3 h-3 mr-1" />
-                            ) : (
-                              <FiClock className="w-3 h-3 mr-1" />
+                          <div className="flex items-center space-x-2">
+                            <select
+                              value={statusMap[candidate.id] ?? candidate.status}
+                              onChange={e => handleStatusChange(candidate.id, e.target.value)}
+                              className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-200 bg-white text-gray-700"
+                            >
+                              <option value="Offer Made">Offer Made</option>
+                              <option value="Accepted">Accepted</option>
+                              <option value="Rejected">Rejected</option>
+                            </select>
+                            {statusMap[candidate.id] && statusMap[candidate.id] !== candidate.status && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleSaveStatus(candidate)}
+                                disabled={savingStatus[candidate.id]}
+                                className="px-2 py-1.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white text-xs rounded-lg hover:shadow-md transition-all duration-300 disabled:opacity-50"
+                              >
+                                {savingStatus[candidate.id] ? 'Saving...' : 'Save'}
+                              </motion.button>
                             )}
-                            {candidate.status}
-                          </span>
+                          </div>
                         </td>
                         <td className="py-4 px-4">
                           {candidate.offer_date ? (
