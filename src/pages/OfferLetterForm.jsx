@@ -444,23 +444,36 @@ const OfferLetterForm = () => {
         setLoading(false)
         return
       }
-      const response = await offerLetterAPI.generate({
-        ...formData,
-        total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
-        current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
-        ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
-        vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
-        revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
-        deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
-        jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
-        days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
-        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
-      })
+      const response = candidateId
+        ? await offerLetterAPI.update(candidateId, {
+            ...formData,
+            total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
+            current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
+            ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
+            vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
+            revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
+            deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
+            jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
+            days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
+            np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
+          })
+        : await offerLetterAPI.generate({
+            ...formData,
+            total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
+            current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
+            ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
+            vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
+            revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
+            deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
+            jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
+            days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
+            np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
+          })
       setLastOfferLetter(response)
       setDocxPath(response.docx_path)
       setPdfPath(response.pdf_path)
       setShowEmailModal(true)
-      toast.success('Offer letter generated successfully!')
+      toast.success(candidateId ? 'Offer letter updated successfully!' : 'Offer letter generated successfully!')
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to generate offer letter')
     } finally {
@@ -537,11 +550,59 @@ const OfferLetterForm = () => {
     if (candidateId) {
       offerLetterAPI.getById(candidateId)
         .then((data) => {
+          const extra = data.extra_data || {}
           setFormData((prev) => ({
             ...prev,
-            ...Object.fromEntries(
-              Object.entries(data).map(([k, v]) => [k, v === null || v === undefined ? '' : String(v)])
-            )
+            candidate_name: data.candidate_name || '',
+            candidate_email: data.candidate_email || '',
+            candidate_phone: data.candidate_phone || '',
+            pan: data.candidate_pan || '',
+            status: data.status || '',
+            source: data.source || '',
+            designation: data.designation || '',
+            position: data.position || '',
+            department: data.department || '',
+            joining_date: data.joining_date || '',
+            facility: data.facility || '',
+            work_mode: data.work_mode || '',
+            total_salary: data.total_salary ? String(data.total_salary) : '',
+            current_ctc: data.current_ctc ? String(data.current_ctc) : '',
+            // extra_data fields
+            tsc: extra.tsc || '',
+            ectc: extra.ectc ? String(extra.ectc) : '',
+            grade: extra.grade || '',
+            jb_amt: extra.jb_amt ? String(extra.jb_amt) : '',
+            pos_id: extra.pos_id || '',
+            account: extra.account || '',
+            project: extra.project || '',
+            sub_tsc: extra.sub_tsc || '',
+            tag_poc: extra.tag_poc || '',
+            comments: extra.comments || '',
+            prev_org: extra.prev_org || '',
+            deviation: extra.deviation ? String(extra.deviation) : '',
+            jb_reason: extra.jb_reason || '',
+            days_lapsed: extra.days_lapsed ? String(extra.days_lapsed) : '',
+            revised_ctc: extra.revised_ctc ? String(extra.revised_ctc) : '',
+            source_type: extra.source_type || '',
+            business_unit: extra.business_unit || '',
+            date_of_offer: extra.date_of_offer || '',
+            notice_period: extra.notice_period || '',
+            np_buyout_amt: extra.np_buyout_amt ? String(extra.np_buyout_amt) : '',
+            primary_skill: extra.primary_skill || '',
+            work_location: extra.work_location || '',
+            source_details: extra.source_details || '',
+            allocation_unit: extra.allocation_unit || '',
+            employment_type: extra.employment_type || 'Full-time',
+            secondary_skill: extra.secondary_skill || '',
+            current_location: extra.current_location || '',
+            probation_period: extra.probation_period || '',
+            vam_proposed_ctc: extra.vam_proposed_ctc ? String(extra.vam_proposed_ctc) : '',
+            candidate_address: extra.candidate_address || '',
+            reporting_manager: extra.reporting_manager || '',
+            years_of_experience: extra.years_of_experience ? String(extra.years_of_experience) : '',
+            np_buyout_mail_approval_date: extra.np_buyout_mail_approval_date || '',
+            offer_approval_received_date: extra.offer_approval_received_date || '',
+            offer_approval_email_sent_date: extra.offer_approval_email_sent_date || '',
           }))
           toast.success('Candidate data loaded')
         })
@@ -710,6 +771,9 @@ const OfferLetterForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
                     <option value="">Status</option>
+                    {formData.status && !['Joined','Offer Made','Abscond','Decline','Revoked'].includes(formData.status) && (
+                      <option value={formData.status}>{formData.status}</option>
+                    )}
                     <option value="Joined">Joined</option>
                     <option value="Offer Made">Offer Made</option>
                     <option value="Abscond">Abscond</option>
@@ -720,6 +784,9 @@ const OfferLetterForm = () => {
                   <input type="text" name="pos_id" placeholder="POS ID" className="form-input w-full" value={formData.pos_id} onChange={handleChange} />
                   <select name="source" className="form-input w-full" value={formData.source} onChange={handleChange} required>
                     <option value="">Source</option>
+                    {formData.source && !['Direct','ER','Vendor'].includes(formData.source) && (
+                      <option value={formData.source}>{formData.source}</option>
+                    )}
                     <option value="Direct">Direct</option>
                     <option value="ER">ER</option>
                     <option value="Vendor">Vendor</option>
@@ -795,11 +862,17 @@ const OfferLetterForm = () => {
                   <input type="text" name="department" placeholder="Department" className="form-input w-full" value={formData.department} onChange={handleChange} />
                   <select name="business_unit" className="form-input w-full" value={formData.business_unit} onChange={handleChange} required>
                     <option value="">Business Unit (Group)</option>
+                    {formData.business_unit && !['P&C','OwlSure'].includes(formData.business_unit) && (
+                      <option value={formData.business_unit}>{formData.business_unit}</option>
+                    )}
                     <option value="P&C">P&C</option>
                     <option value="OwlSure">OwlSure</option>
                   </select>
                   <select name="tsc" className="form-input w-full" value={formData.tsc} onChange={handleChange} required>
                     <option value="">Technology Solution Center (TSC)</option>
+                    {formData.tsc && !['Core Platforms','Platform, App & Infra','Data & BI','Advanced Analytics','Risk Analytics'].includes(formData.tsc) && (
+                      <option value={formData.tsc}>{formData.tsc}</option>
+                    )}
                     <option value="Core Platforms">Core Platforms</option>
                     <option value="Platform, App & Infra">Platform, App & Infra</option>
                     <option value="Data & BI">Data & BI</option>
@@ -808,6 +881,9 @@ const OfferLetterForm = () => {
                   </select>
                   <select name="sub_tsc" className="form-input w-full" value={formData.sub_tsc} onChange={handleChange} required>
                     <option value="">Sub-TSC</option>
+                    {formData.sub_tsc && !['Core','CCM','Domain','QE','App','Data'].includes(formData.sub_tsc) && (
+                      <option value={formData.sub_tsc}>{formData.sub_tsc}</option>
+                    )}
                     <option value="Core">Core</option>
                     <option value="CCM">CCM</option>
                     <option value="Domain">Domain</option>
@@ -817,6 +893,9 @@ const OfferLetterForm = () => {
                   </select>
                   <select name="allocation_unit" className="form-input w-full" value={formData.allocation_unit} onChange={handleChange} required>
                     <option value="">Select Allocation Unit</option>
+                    {formData.allocation_unit && !['P&C','OwlSure'].includes(formData.allocation_unit) && (
+                      <option value={formData.allocation_unit}>{formData.allocation_unit}</option>
+                    )}
                     <option value="P&C">P&C</option>
                     <option value="OwlSure">OwlSure</option>
                   </select>
@@ -824,11 +903,17 @@ const OfferLetterForm = () => {
                   <input type="text" name="project" placeholder="Project" className="form-input w-full" value={formData.project} onChange={handleChange} />
                   <select name="employment_type" className="form-input w-full" value={formData.employment_type} onChange={handleChange} required>
                     <option value="">Employment Type</option>
+                    {formData.employment_type && !['Full-time','Contractor'].includes(formData.employment_type) && (
+                      <option value={formData.employment_type}>{formData.employment_type}</option>
+                    )}
                     <option value="Full-time">Full-time</option>
                     <option value="Contractor">Contractor</option>
                   </select>
                   <select name="facility" className="form-input w-full" value={formData.facility} onChange={handleChange} required>
                     <option value="">Facility</option>
+                    {formData.facility && !['Hyderabad','Coimbatore','Pune','Banglore'].includes(formData.facility) && (
+                      <option value={formData.facility}>{formData.facility}</option>
+                    )}
                     <option value="Hyderabad">Hyderabad</option>
                     <option value="Coimbatore">Coimbatore</option>
                     <option value="Pune">Pune</option>
@@ -852,6 +937,9 @@ const OfferLetterForm = () => {
                       required
                     >
                       <option value="">Work Mode</option>
+                      {formData.work_mode && !['Remote','Offline'].includes(formData.work_mode) && (
+                        <option value={formData.work_mode}>{formData.work_mode}</option>
+                      )}
                       <option value="Remote">Remote</option>
                       <option value="Offline">Offline</option>
                     </select>

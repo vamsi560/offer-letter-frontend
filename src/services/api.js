@@ -83,11 +83,17 @@ export const offerLetterAPI = {
     return response.data
   },
   updateStatus: async (candidateId, status) => {
-    const response = await api.patch(`/offer-letter/${candidateId}/status`, { status })
+    const response = await api.post(`/change-status/${candidateId}/${status}`)
     return response.data
   },
-  getById: async (candidateId) => {
-    const response = await api.get(`/get-user-details/${candidateId}`)
+  getById: async (offer_id) => {
+    console.log('Fetching offer letter by id:', offer_id)
+    const response = await api.get(`/offer-letter/${offer_id}`)
+    console.log('Offer letter data:', response.data)
+    return response.data
+  },
+  update: async (offer_id, offerData) => {
+    const response = await api.put(`/offer-letter/${offer_id}`, offerData)
     return response.data
   }
 }

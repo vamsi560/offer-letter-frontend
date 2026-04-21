@@ -298,7 +298,10 @@ const Dashboard = () => {
                         <td className="py-4 px-4">
                           <div
                             className="flex items-center space-x-3 cursor-pointer group"
-                            onClick={() => navigate(`/offer-letter`, { state: { candidateId: candidate.id } })}
+                            onClick={() => {
+                              console.log('Navigating with candidateId:', candidate.id)
+                              navigate(`/offer-letter`, { state: { candidateId: candidate.id } })
+                            }}
                           >
                             <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                               {candidate.name.charAt(0)}
@@ -325,6 +328,9 @@ const Dashboard = () => {
                               onChange={e => handleStatusChange(candidate.id, e.target.value)}
                               className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-200 bg-white text-gray-700"
                             >
+                              {candidate.status && !['Offer Made','Accepted','Rejected'].includes(candidate.status) && (
+                                <option value={candidate.status}>{candidate.status}</option>
+                              )}
                               <option value="Offer Made">Offer Made</option>
                               <option value="Accepted">Accepted</option>
                               <option value="Rejected">Rejected</option>
