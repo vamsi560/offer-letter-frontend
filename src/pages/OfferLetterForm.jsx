@@ -148,7 +148,7 @@ const OfferLetterForm = () => {
       employment_type: 'Full-time',
       facility: 'Hyderabad',
       work_location: 'Palnadu',
-      work_mode: 'Offline',
+      work_mode: 'Work from Office',
       reporting_manager: 'Sarah Williams',
       joining_date: joiningDateStr,
       probation_period: '6 months',
@@ -937,11 +937,11 @@ const OfferLetterForm = () => {
                       required
                     >
                       <option value="">Work Mode</option>
-                      {formData.work_mode && !['Remote','Offline'].includes(formData.work_mode) && (
+                      {formData.work_mode && !['Remote','Work from Office'].includes(formData.work_mode) && (
                         <option value={formData.work_mode}>{formData.work_mode}</option>
                       )}
                       <option value="Remote">Remote</option>
-                      <option value="Offline">Offline</option>
+                      <option value="Work from Office">Work from Office</option>
                     </select>
                   </div>
                   <input type="text" name="reporting_manager" placeholder="Reporting Manager (Full Name)" className="form-input w-full" value={formData.reporting_manager} onChange={handleChange} />
