@@ -34,18 +34,44 @@ function mapSalaryBreakdown(apiData) {
     totalDeductionsAnnual: format(apiData.Total_Deductions_Annual),
     netMonthly: format(apiData.Net_Monthly_Salary),
     netAnnual: format(apiData.Net_Annual_Salary),
-    // Add any additional mappings as needed
   };
 }
+
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { FiBriefcase, FiDollarSign, FiEye } from 'react-icons/fi'
+import { FiBriefcase, FiDollarSign, FiEye, FiFolder, FiLock, FiFileText } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import Modal from '../components/Modal'
 import OfferLetterPreview from '../components/OfferLetterPreview'
 import { offerLetterAPI } from '../services/api'
+
+// Custom collapsible accordion item for smart grouping
+const SectionAccordion = ({ title, isOpen, onToggle, children, icon: Icon }) => {
+  return (
+    <div className="border border-teal-100 rounded-xl overflow-hidden mb-6 bg-white shadow-sm hover:shadow transition-shadow duration-300">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex justify-between items-center px-6 py-4 bg-gradient-to-r from-teal-50/70 to-teal-100/30 hover:from-teal-100/50 transition-colors text-left"
+      >
+        <span className="font-semibold text-teal-800 text-base flex items-center space-x-3">
+          {Icon && <Icon className="w-5 h-5 text-teal-600" />}
+          <span>{title}</span>
+        </span>
+        <span className="text-teal-600 font-bold transform transition-transform duration-300" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          ▼
+        </span>
+      </button>
+      <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1200px] opacity-100 border-t border-teal-50' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}>
+        <div className="p-6 bg-white">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const OfferLetterForm = () => {
   const navigate = useNavigate()
@@ -89,7 +115,7 @@ const OfferLetterForm = () => {
     employment_type: 'Full-time',
     facility: '',
     work_location: '',
-    work_mode: '', // Add new field for Work Mode
+    work_mode: '', 
     reporting_manager: '',
     joining_date: '',
     probation_period: '',
@@ -107,6 +133,84 @@ const OfferLetterForm = () => {
     np_buyout_amt: '',
     np_buyout_mail_approval_date: '',
   })
+
+  // Accordion Expand States
+  const [expandedSections, setExpandedSections] = useState({
+    candidateDemographics: true,
+    recruiterDetails: true,
+    orgPlacement: true,
+    roleSpecs: true,
+    compBase: true,
+    allowances: true,
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Indian Rupee Format Helper
+  const formatINR = (value) => {
+    if (!value) return '';
+    const num = String(value).replace(/[^0-9]/g, '');
+    if (!num) return '';
+    const lastThree = num.substring(num.length - 3);
+    const otherNumbers = num.substring(0, num.length - 3);
+    const formatted = otherNumbers !== '' 
+      ? otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + lastThree 
+      : lastThree;
+    return '₹ ' + formatted;
+  };
+
+  const handleCurrencyChange = (e) => {
+    const { name, value } = e.target;
+    const rawValue = value.replace(/[^0-9]/g, '');
+    setFormData(prev => ({
+      ...prev,
+      [name]: rawValue
+    }));
+  };
+
+  // Local Storage Auto-Save Drafts (runs when formData changes)
+  useEffect(() => {
+    if (!candidateId) {
+      const timer = setTimeout(() => {
+        localStorage.setItem('offer_letter_draft', JSON.stringify(formData));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [formData, candidateId]);
+
+  // Restore Draft Action
+  useEffect(() => {
+    if (!candidateId) {
+      const savedDraft = localStorage.getItem('offer_letter_draft');
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          // Check if it has actual data
+          if (parsed.candidate_name || parsed.candidate_email) {
+            toast.info(
+              <div className="flex flex-col">
+                <span>We found a previously saved draft.</span>
+                <button
+                  onClick={() => {
+                    setFormData(parsed);
+                    toast.success('Draft restored successfully!');
+                  }}
+                  className="mt-2 bg-teal-600 text-white text-xs px-3 py-1 rounded hover:bg-teal-700 w-fit font-bold"
+                >
+                  Restore Draft
+                </button>
+              </div>,
+              { autoClose: false, closeOnClick: false }
+            );
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [candidateId]);
 
   const autoPopulateData = async () => {
     const today = new Date().toISOString().split('T')[0];
@@ -139,16 +243,16 @@ const OfferLetterForm = () => {
       position: 'Full Stack Developer',
       grade: 'Grade A',
       department: 'Engineering',
-      business_unit: 'P&C',
+      business_unit: 'ValueMomentum',
       tsc: 'Platform, App & Infra',
       sub_tsc: 'App',
-      allocation_unit: 'P&C',
+      allocation_unit: 'ValueMomentum',
       account: 'Internal Projects',
       project: 'Insurance Platform Modernization',
       employment_type: 'Full-time',
       facility: 'Hyderabad',
       work_location: 'Palnadu',
-      work_mode: 'Work from Office',
+      work_mode: 'Offline',
       reporting_manager: 'Sarah Williams',
       joining_date: joiningDateStr,
       probation_period: '6 months',
@@ -169,73 +273,30 @@ const OfferLetterForm = () => {
     setFormData(newFormData);
     toast.success('Form auto-populated with sample data!');
     
-    // Trigger salary breakdown calculation immediately after setting form data
     setCalculatingBreakdown(true);
     try {
-      // Mock salary breakdown data
       const salary = 1600000;
       const breakdown = {
         Total_Annual_Gross: formatCurrency(salary),
         Total_In_Words: 'Sixteen Lakh Only',
         Compensation_Table_Rows: [
-          {
-            component: 'Basic Salary',
-            monthly: formatCurrency(salary * 0.4 / 12),
-            annual: formatCurrency(salary * 0.4)
-          },
-          {
-            component: 'House Rent Allowance',
-            monthly: formatCurrency(salary * 0.3 / 12),
-            annual: formatCurrency(salary * 0.3)
-          },
-          {
-            component: 'Conveyance',
-            monthly: formatCurrency(salary * 0.05 / 12),
-            annual: formatCurrency(salary * 0.05)
-          },
-          {
-            component: 'Provident Fund Contribution',
-            monthly: formatCurrency(salary * 0.12 / 12),
-            annual: formatCurrency(salary * 0.12)
-          },
-          {
-            component: 'Gratuity (payable as per gratuity act)',
-            monthly: formatCurrency(salary * 0.048 / 12),
-            annual: formatCurrency(salary * 0.048)
-          },
-          {
-            component: 'Flexible Benefits:',
-            monthly: '',
-            annual: ''
-          },
-          {
-            component: 'Meal Card',
-            monthly: formatCurrency(salary * 0.01 / 12),
-            annual: formatCurrency(salary * 0.01)
-          },
-          {
-            component: 'LTC',
-            monthly: formatCurrency(salary * 0.015 / 12),
-            annual: formatCurrency(salary * 0.015)
-          },
-          {
-            component: 'NPS',
-            monthly: formatCurrency(salary * 0.02 / 12),
-            annual: formatCurrency(salary * 0.02)
-          },
-          {
-            component: 'Total',
-            monthly: formatCurrency(salary / 12),
-            annual: formatCurrency(salary)
-          }
+          { component: 'Basic Salary', monthly: formatCurrency(salary * 0.4 / 12), annual: formatCurrency(salary * 0.4) },
+          { component: 'House Rent Allowance', monthly: formatCurrency(salary * 0.3 / 12), annual: formatCurrency(salary * 0.3) },
+          { component: 'Conveyance', monthly: formatCurrency(salary * 0.05 / 12), annual: formatCurrency(salary * 0.05) },
+          { component: 'Provident Fund Contribution', monthly: formatCurrency(salary * 0.12 / 12), annual: formatCurrency(salary * 0.12) },
+          { component: 'Gratuity (payable as per gratuity act)', monthly: formatCurrency(salary * 0.048 / 12), annual: formatCurrency(salary * 0.048) },
+          { component: 'Flexible Benefits:', monthly: '', annual: '' },
+          { component: 'Meal Card', monthly: formatCurrency(salary * 0.01 / 12), annual: formatCurrency(salary * 0.01) },
+          { component: 'LTC', monthly: formatCurrency(salary * 0.015 / 12), annual: formatCurrency(salary * 0.015) },
+          { component: 'NPS', monthly: formatCurrency(salary * 0.02 / 12), annual: formatCurrency(salary * 0.02) },
+          { component: 'Total', monthly: formatCurrency(salary / 12), annual: formatCurrency(salary) }
         ]
       };
       
       setSalaryBreakdown(breakdown);
-      console.log('Auto-populated salary breakdown:', breakdown);
       toast.success('Salary breakdown calculated!');
     } catch (error) {
-      console.error('Error in auto-populate breakdown:', error);
+      console.error(error);
     } finally {
       setCalculatingBreakdown(false);
     }
@@ -299,85 +360,41 @@ const OfferLetterForm = () => {
 
     setCalculatingBreakdown(true)
     try {
-      // Try API call first, if it fails, use mock data
       let breakdown;
       try {
         breakdown = await offerLetterAPI.getSalaryBreakdown(parseFloat(totalSalary));
         breakdown = mapSalaryBreakdown(breakdown);
       } catch (apiError) {
         console.log('API call failed, using mock data:', apiError);
-        // Mock salary breakdown data
         const salary = parseFloat(totalSalary);
         breakdown = {
           Total_Annual_Gross: formatCurrency(salary),
           Total_In_Words: convertNumberToWords(salary),
           Compensation_Table_Rows: [
-            {
-              component: 'Basic Salary',
-              monthly: formatCurrency(salary * 0.4 / 12),
-              annual: formatCurrency(salary * 0.4)
-            },
-            {
-              component: 'House Rent Allowance',
-              monthly: formatCurrency(salary * 0.3 / 12),
-              annual: formatCurrency(salary * 0.3)
-            },
-            {
-              component: 'Conveyance',
-              monthly: formatCurrency(salary * 0.05 / 12),
-              annual: formatCurrency(salary * 0.05)
-            },
-            {
-              component: 'Provident Fund Contribution',
-              monthly: formatCurrency(salary * 0.12 / 12),
-              annual: formatCurrency(salary * 0.12)
-            },
-            {
-              component: 'Gratuity (payable as per gratuity act)',
-              monthly: formatCurrency(salary * 0.048 / 12),
-              annual: formatCurrency(salary * 0.048)
-            },
-            {
-              component: 'Flexible Benefits:',
-              monthly: '',
-              annual: ''
-            },
-            {
-              component: 'Meal Card',
-              monthly: formatCurrency(salary * 0.01 / 12),
-              annual: formatCurrency(salary * 0.01)
-            },
-            {
-              component: 'LTC',
-              monthly: formatCurrency(salary * 0.015 / 12),
-              annual: formatCurrency(salary * 0.015)
-            },
-            {
-              component: 'NPS',
-              monthly: formatCurrency(salary * 0.02 / 12),
-              annual: formatCurrency(salary * 0.02)
-            },
-            {
-              component: 'Total',
-              monthly: formatCurrency(salary / 12),
-              annual: formatCurrency(salary)
-            }
+            { component: 'Basic Salary', monthly: formatCurrency(salary * 0.4 / 12), annual: formatCurrency(salary * 0.4) },
+            { component: 'House Rent Allowance', monthly: formatCurrency(salary * 0.3 / 12), annual: formatCurrency(salary * 0.3) },
+            { component: 'Conveyance', monthly: formatCurrency(salary * 0.05 / 12), annual: formatCurrency(salary * 0.05) },
+            { component: 'Provident Fund Contribution', monthly: formatCurrency(salary * 0.12 / 12), annual: formatCurrency(salary * 0.12) },
+            { component: 'Gratuity (payable as per gratuity act)', monthly: formatCurrency(salary * 0.048 / 12), annual: formatCurrency(salary * 0.048) },
+            { component: 'Flexible Benefits:', monthly: '', annual: '' },
+            { component: 'Meal Card', monthly: formatCurrency(salary * 0.01 / 12), annual: formatCurrency(salary * 0.01) },
+            { component: 'LTC', monthly: formatCurrency(salary * 0.015 / 12), annual: formatCurrency(salary * 0.015) },
+            { component: 'NPS', monthly: formatCurrency(salary * 0.02 / 12), annual: formatCurrency(salary * 0.02) },
+            { component: 'Total', monthly: formatCurrency(salary / 12), annual: formatCurrency(salary) }
           ]
         };
       }
       
       setSalaryBreakdown(breakdown)
-      console.log('Salary breakdown calculated:', breakdown);
       toast.success('Salary breakdown calculated successfully!');
     } catch (error) {
-      console.error('Error calculating salary breakdown:', error)
+      console.error(error)
       toast.error('Failed to calculate salary breakdown')
     } finally {
       setCalculatingBreakdown(false)
     }
   }
 
-  // Helper function to convert number to words (simplified)
   const convertNumberToWords = (num) => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
     const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -401,7 +418,6 @@ const OfferLetterForm = () => {
     return 'Amount in Words';
   };
 
-  // Deviation (in percentage) calculation
   const calculateDeviation = () => {
     const currentCtc = parseFloat(formData.current_ctc) || 0;
     const totalSalary = parseFloat(formData.total_salary) || 0;
@@ -419,12 +435,6 @@ const OfferLetterForm = () => {
       [name]: normalizedValue
     }))
   }
-
-  // Only update the value, do not call salary breakdown here
-  const handleTotalSalaryChange = (e) => {
-    handleChange(e);
-    // Do NOT call calculateSalaryBreakdown here
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -444,36 +454,42 @@ const OfferLetterForm = () => {
         setLoading(false)
         return
       }
+
+      // Prepare numeric properties properly for API delivery
+      const payload = {
+        ...formData,
+        total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
+        current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
+        ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
+        vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
+        revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
+        deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
+        jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
+        days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
+        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
+      };
+
       const response = candidateId
-        ? await offerLetterAPI.update(candidateId, {
-            ...formData,
-            total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
-            current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
-            ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
-            vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
-            revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
-            deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
-            jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
-            days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
-            np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
-          })
-        : await offerLetterAPI.generate({
-            ...formData,
-            total_salary: formData.total_salary ? parseFloat(formData.total_salary) : undefined,
-            current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : undefined,
-            ectc: formData.ectc ? parseFloat(formData.ectc) : undefined,
-            vam_proposed_ctc: formData.vam_proposed_ctc ? parseFloat(formData.vam_proposed_ctc) : undefined,
-            revised_ctc: formData.revised_ctc ? parseFloat(formData.revised_ctc) : undefined,
-            deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
-            jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
-            days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
-            np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
-          })
+        ? await offerLetterAPI.update(candidateId, payload)
+        : await offerLetterAPI.generate(payload)
+      
+      // Clean draft on success
+      localStorage.removeItem('offer_letter_draft');
+      
       setLastOfferLetter(response)
       setDocxPath(response.docx_path)
       setPdfPath(response.pdf_path)
-      setShowEmailModal(true)
-      toast.success(candidateId ? 'Offer letter updated successfully!' : 'Offer letter generated successfully!')
+      
+      toast.success(
+        candidateId 
+          ? 'Offer details updated successfully! Generation running in background.' 
+          : 'Offer letter generation started in background!'
+      )
+      
+      // Since it runs in the background, navigate directly to dashboard
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 1500)
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to generate offer letter')
     } finally {
@@ -499,7 +515,6 @@ const OfferLetterForm = () => {
         facility: formData.facility,
         work_mode: formData.work_mode,
         tag_poc: formData.tag_poc,
-        // Optionally add cc_email: formData.tag_poc
       })
       setEmailSent(true)
       toast.success('Offer letter email sent!')
@@ -567,7 +582,6 @@ const OfferLetterForm = () => {
             work_mode: data.work_mode || '',
             total_salary: data.total_salary ? String(data.total_salary) : '',
             current_ctc: data.current_ctc ? String(data.current_ctc) : '',
-            // extra_data fields
             tsc: extra.tsc || '',
             ectc: extra.ectc ? String(extra.ectc) : '',
             grade: extra.grade || '',
@@ -675,12 +689,10 @@ const OfferLetterForm = () => {
     return <span>{String(value ?? '')}</span>
   }
 
-  // Add a row for 'Total Gross' at the end of the breakdown
   let compensationRows = Array.isArray(salaryBreakdown?.Compensation_Table_Rows)
     ? salaryBreakdown.Compensation_Table_Rows.slice()
     : [];
 
-  // Remove any previous 'Total' row to avoid duplication
   compensationRows = compensationRows.filter(row => !(row.component && row.component.toLowerCase().includes('total')));
 
   if (formData.total_salary) {
@@ -722,6 +734,7 @@ const OfferLetterForm = () => {
             </button>
           </div>
         </div>
+        
         {/* Progress Steps */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
           <div className="flex items-center justify-between">
@@ -761,88 +774,115 @@ const OfferLetterForm = () => {
             ))}
           </div>
         </motion.div>
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
-                {/* General/Recruitment Section */}
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">General / Recruitment Details</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 border-teal-50">General / Recruitment Details</h2>
                 {renderRequiredSummary(1)}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
-                    <option value="">Status</option>
-                    {formData.status && !['Joined','Offer Made','Abscond','Decline','Revoked'].includes(formData.status) && (
-                      <option value={formData.status}>{formData.status}</option>
+                
+                {/* Section 1: Candidate Demographics */}
+                <SectionAccordion
+                  title="Candidate Demographics"
+                  isOpen={expandedSections.candidateDemographics}
+                  onToggle={() => toggleSection('candidateDemographics')}
+                  icon={FiFileText}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" name="candidate_name" placeholder="Candidate Name (Full Name)" className="form-input w-full" value={formData.candidate_name} onChange={handleChange} />
+                    <input type="tel" name="candidate_phone" placeholder="Contact No" className="form-input w-full" value={formData.candidate_phone} onChange={handleChange} />
+                    <input type="email" name="candidate_email" placeholder="Email ID" className="form-input w-full" value={formData.candidate_email} onChange={handleChange} />
+                    <input type="text" name="candidate_address" placeholder="Address" className="form-input w-full" value={formData.candidate_address} onChange={handleChange} />
+                    <input type="text" name="current_location" placeholder="Current Location" className="form-input w-full" value={formData.current_location} onChange={handleChange} />
+                    
+                    <div>
+                      <input
+                        type="text"
+                        name="pan"
+                        placeholder="PAN"
+                        className={`form-input w-full uppercase ${formData.pan && !isPanValid() ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}`}
+                        maxLength={10}
+                        value={formData.pan}
+                        onChange={handleChange}
+                      />
+                      {formData.pan && (
+                        <div className={`text-xs mt-1 ${isPanValid() ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPanValid() ? 'Valid PAN format' : 'Invalid PAN format (ABCDE1234F)'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </SectionAccordion>
+
+                {/* Section 2: Recruitment Context */}
+                <SectionAccordion
+                  title="Recruitment & Pipeline Context"
+                  isOpen={expandedSections.recruiterDetails}
+                  onToggle={() => toggleSection('recruiterDetails')}
+                  icon={FiFolder}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
+                      <option value="">Status</option>
+                      {formData.status && !['Joined','Offer Made','Abscond','Decline','Revoked'].includes(formData.status) && (
+                        <option value={formData.status}>{formData.status}</option>
+                      )}
+                      <option value="Joined">Joined</option>
+                      <option value="Offer Made">Offer Made</option>
+                      <option value="Abscond">Abscond</option>
+                      <option value="Decline">Decline</option>
+                      <option value="Revoked">Revoked</option>
+                    </select>
+                    
+                    <input type="text" name="tag_poc" placeholder="TAG POC" className="form-input w-full" value={formData.tag_poc} onChange={handleChange} />
+                    <input type="text" name="pos_id" placeholder="POS ID" className="form-input w-full" value={formData.pos_id} onChange={handleChange} />
+                    
+                    <select name="source" className="form-input w-full" value={formData.source} onChange={handleChange} required>
+                      <option value="">Source</option>
+                      {formData.source && !['Direct','ER','Vendor'].includes(formData.source) && (
+                        <option value={formData.source}>{formData.source}</option>
+                      )}
+                      <option value="Direct">Direct</option>
+                      <option value="ER">ER</option>
+                      <option value="Vendor">Vendor</option>
+                    </select>
+
+                    {formData.source === 'Direct' && (
+                      <input type="text" name="source_details" placeholder="Source Details" className="form-input w-full" value={formData.source_details} onChange={handleChange} />
                     )}
-                    <option value="Joined">Joined</option>
-                    <option value="Offer Made">Offer Made</option>
-                    <option value="Abscond">Abscond</option>
-                    <option value="Decline">Decline</option>
-                    <option value="Revoked">Revoked</option>
-                  </select>
-                  <input type="text" name="tag_poc" placeholder="TAG POC" className="form-input w-full" value={formData.tag_poc} onChange={handleChange} />
-                  <input type="text" name="pos_id" placeholder="POS ID" className="form-input w-full" value={formData.pos_id} onChange={handleChange} />
-                  <select name="source" className="form-input w-full" value={formData.source} onChange={handleChange} required>
-                    <option value="">Source</option>
-                    {formData.source && !['Direct','ER','Vendor'].includes(formData.source) && (
-                      <option value={formData.source}>{formData.source}</option>
+                    {formData.source === 'Vendor' && (
+                      <>
+                        <input type="text" name="source_type" placeholder="Vendor POC" className="form-input w-full" value={formData.source_type} onChange={handleChange} />
+                        <input type="text" name="source_details" placeholder="Vendor Details" className="form-input w-full" value={formData.source_details} onChange={handleChange} />
+                      </>
                     )}
-                    <option value="Direct">Direct</option>
-                    <option value="ER">ER</option>
-                    <option value="Vendor">Vendor</option>
-                  </select>
-                  {/* Source Type/Details dynamic fields */}
-                  {formData.source === 'Direct' && (
-                    <input type="text" name="source_details" placeholder="Source Details" className="form-input w-full" value={formData.source_details} onChange={handleChange} />
-                  )}
-                  {formData.source === 'Vendor' && (
-                    <>
-                      <input type="text" name="source_type" placeholder="Vendor POC" className="form-input w-full" value={formData.source_type} onChange={handleChange} />
-                      <input type="text" name="source_details" placeholder="Vendor Details" className="form-input w-full" value={formData.source_details} onChange={handleChange} />
-                    </>
-                  )}
-                  {formData.source === 'ER' && (
-                    <input type="text" name="source_type" placeholder="ER - Referral Email" className="form-input w-full" value={formData.source_type} onChange={handleChange} />
-                  )}
-                  <input type="text" name="candidate_name" placeholder="Candidate Name (Full Name)" className="form-input w-full" value={formData.candidate_name} onChange={handleChange} />
-                  <input type="number" name="years_of_experience" placeholder="Years of Experience" className="form-input w-full" value={formData.years_of_experience} onChange={handleChange} />
-                  <div className="col-span-1">
-                    <label htmlFor="offer_approval_email_sent_date" className="block text-sm font-semibold text-gray-700 mb-1">Offer Approval Email Sent Date</label>
-                    <input type="date" id="offer_approval_email_sent_date" name="offer_approval_email_sent_date" className="form-input w-full" value={formData.offer_approval_email_sent_date} onChange={handleChange} />
-                  </div>
-                  <div className="col-span-1">
-                    <label htmlFor="offer_approval_received_date" className="block text-sm font-semibold text-gray-700 mb-1">Offer Approval Received Date</label>
-                    <input type="date" id="offer_approval_received_date" name="offer_approval_received_date" className="form-input w-full" value={formData.offer_approval_received_date} onChange={handleChange} />
-                  </div>
-                  <div className="col-span-1">
-                    <label htmlFor="date_of_offer" className="block text-sm font-semibold text-gray-700 mb-1">Date of Offer</label>
-                    <input type="date" id="date_of_offer" name="date_of_offer" className="form-input w-full" value={formData.date_of_offer} onChange={handleChange} />
-                  </div>
-                  <input type="text" name="primary_skill" placeholder="Primary Skill" className="form-input w-full" value={formData.primary_skill} onChange={handleChange} />
-                  <input type="text" name="secondary_skill" placeholder="Secondary Skill" className="form-input w-full" value={formData.secondary_skill} onChange={handleChange} />
-                  <input type="text" name="current_location" placeholder="Current Location" className="form-input w-full" value={formData.current_location} onChange={handleChange} />
-                  <input type="tel" name="candidate_phone" placeholder="Contact No" className="form-input w-full" value={formData.candidate_phone} onChange={handleChange} />
-                  <input type="email" name="candidate_email" placeholder="Email ID" className="form-input w-full" value={formData.candidate_email} onChange={handleChange} />
-                  <input type="text" name="candidate_address" placeholder="Address" className="form-input w-full" value={formData.candidate_address} onChange={handleChange} />
-                  <div>
-                    <input
-                      type="text"
-                      name="pan"
-                      placeholder="PAN"
-                      className={`form-input w-full ${formData.pan && !isPanValid() ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}`}
-                      maxLength={10}
-                      value={formData.pan}
-                      onChange={handleChange}
-                    />
-                    {formData.pan && (
-                      <div className={`text-xs mt-1 ${isPanValid() ? 'text-green-600' : 'text-red-600'}`}>
-                        {isPanValid() ? 'Valid PAN format' : 'Invalid PAN format (ABCDE1234F)'}
-                      </div>
+                    {formData.source === 'ER' && (
+                      <input type="text" name="source_type" placeholder="ER - Referral Email" className="form-input w-full" value={formData.source_type} onChange={handleChange} />
                     )}
+                    
+                    <input type="number" name="years_of_experience" placeholder="Years of Experience" className="form-input w-full" value={formData.years_of_experience} onChange={handleChange} />
+                    <input type="text" name="primary_skill" placeholder="Primary Skill" className="form-input w-full" value={formData.primary_skill} onChange={handleChange} />
+                    <input type="text" name="secondary_skill" placeholder="Secondary Skill" className="form-input w-full" value={formData.secondary_skill} onChange={handleChange} />
+                    <input type="text" name="prev_org" placeholder="Previous Organization" className="form-input w-full" value={formData.prev_org} onChange={handleChange} />
+                    
+                    <div className="col-span-1">
+                      <label htmlFor="offer_approval_email_sent_date" className="block text-sm font-semibold text-gray-700 mb-1">Offer Approval Email Sent Date</label>
+                      <input type="date" id="offer_approval_email_sent_date" name="offer_approval_email_sent_date" className="form-input w-full" value={formData.offer_approval_email_sent_date} onChange={handleChange} />
+                    </div>
+                    <div className="col-span-1">
+                      <label htmlFor="offer_approval_received_date" className="block text-sm font-semibold text-gray-700 mb-1">Offer Approval Received Date</label>
+                      <input type="date" id="offer_approval_received_date" name="offer_approval_received_date" className="form-input w-full" value={formData.offer_approval_received_date} onChange={handleChange} />
+                    </div>
+                    <div className="col-span-1">
+                      <label htmlFor="date_of_offer" className="block text-sm font-semibold text-gray-700 mb-1">Date of Offer</label>
+                      <input type="date" id="date_of_offer" name="date_of_offer" className="form-input w-full" value={formData.date_of_offer} onChange={handleChange} />
+                    </div>
+                    
+                    <input type="text" name="comments" placeholder="Comments" className="form-input w-full col-span-1" value={formData.comments} onChange={handleChange} />
                   </div>
-                  <input type="text" name="prev_org" placeholder="Previous Organization" className="form-input w-full" value={formData.prev_org} onChange={handleChange} />
-                  <input type="text" name="comments" placeholder="Comments" className="form-input w-full" value={formData.comments} onChange={handleChange} />
-                </div>
+                </SectionAccordion>
+
                 <div className="flex justify-end mt-6">
                   <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
                     Next: Position Details
@@ -850,108 +890,131 @@ const OfferLetterForm = () => {
                 </div>
               </motion.div>
             )}
+
             {currentStep === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
-                {/* Position Section */}
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Position Details</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 border-teal-50">Position Details</h2>
                 {renderRequiredSummary(2)}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input type="text" name="designation" placeholder="Designation" className="form-input w-full" value={formData.designation} onChange={handleChange} />
-                  <input type="text" name="position" placeholder="Position" className="form-input w-full" value={formData.position} onChange={handleChange} />
-                  <input type="text" name="grade" placeholder="Grade" className="form-input w-full" value={formData.grade} onChange={handleChange} />
-                  <input type="text" name="department" placeholder="Department" className="form-input w-full" value={formData.department} onChange={handleChange} />
-                  <select name="business_unit" className="form-input w-full" value={formData.business_unit} onChange={handleChange} required>
-                    <option value="">Business Unit (Group)</option>
-                    {formData.business_unit && !['P&C','OwlSure'].includes(formData.business_unit) && (
-                      <option value={formData.business_unit}>{formData.business_unit}</option>
-                    )}
-                    <option value="P&C">P&C</option>
-                    <option value="OwlSure">OwlSure</option>
-                  </select>
-                  <select name="tsc" className="form-input w-full" value={formData.tsc} onChange={handleChange} required>
-                    <option value="">Technology Solution Center (TSC)</option>
-                    {formData.tsc && !['Core Platforms','Platform, App & Infra','Data & BI','Advanced Analytics','Risk Analytics'].includes(formData.tsc) && (
-                      <option value={formData.tsc}>{formData.tsc}</option>
-                    )}
-                    <option value="Core Platforms">Core Platforms</option>
-                    <option value="Platform, App & Infra">Platform, App & Infra</option>
-                    <option value="Data & BI">Data & BI</option>
-                    <option value="Advanced Analytics">Advanced Analytics</option>
-                    <option value="Risk Analytics">Risk Analytics</option>
-                  </select>
-                  <select name="sub_tsc" className="form-input w-full" value={formData.sub_tsc} onChange={handleChange} required>
-                    <option value="">Sub-TSC</option>
-                    {formData.sub_tsc && !['Core','CCM','Domain','QE','App','Data'].includes(formData.sub_tsc) && (
-                      <option value={formData.sub_tsc}>{formData.sub_tsc}</option>
-                    )}
-                    <option value="Core">Core</option>
-                    <option value="CCM">CCM</option>
-                    <option value="Domain">Domain</option>
-                    <option value="QE">QE</option>
-                    <option value="App">App</option>
-                    <option value="Data">Data</option>
-                  </select>
-                  <select name="allocation_unit" className="form-input w-full" value={formData.allocation_unit} onChange={handleChange} required>
-                    <option value="">Select Allocation Unit</option>
-                    {formData.allocation_unit && !['P&C','OwlSure'].includes(formData.allocation_unit) && (
-                      <option value={formData.allocation_unit}>{formData.allocation_unit}</option>
-                    )}
-                    <option value="P&C">P&C</option>
-                    <option value="OwlSure">OwlSure</option>
-                  </select>
-                  <input type="text" name="account" placeholder="Account" className="form-input w-full" value={formData.account} onChange={handleChange} />
-                  <input type="text" name="project" placeholder="Project" className="form-input w-full" value={formData.project} onChange={handleChange} />
-                  <select name="employment_type" className="form-input w-full" value={formData.employment_type} onChange={handleChange} required>
-                    <option value="">Employment Type</option>
-                    {formData.employment_type && !['Full-time','Contractor'].includes(formData.employment_type) && (
-                      <option value={formData.employment_type}>{formData.employment_type}</option>
-                    )}
-                    <option value="Full-time">Full-time</option>
-                    <option value="Contractor">Contractor</option>
-                  </select>
-                  <select name="facility" className="form-input w-full" value={formData.facility} onChange={handleChange} required>
-                    <option value="">Facility</option>
-                    {formData.facility && !['Hyderabad','Coimbatore','Pune','Banglore'].includes(formData.facility) && (
-                      <option value={formData.facility}>{formData.facility}</option>
-                    )}
-                    <option value="Hyderabad">Hyderabad</option>
-                    <option value="Coimbatore">Coimbatore</option>
-                    <option value="Pune">Pune</option>
-                    <option value="Banglore">Banglore</option>
-                  </select>
-                  {/* Work Location dropdown only for Hyderabad */}
-                  {formData.facility === 'Hyderabad' && (
-                    <select name="work_location" className="form-input w-full" value={formData.work_location} onChange={handleChange} required>
-                      <option value="">Work Location</option>
-                      <option value="Palnadu">Palnadu</option>
-                      <option value="Mantri cosmos">Mantri cosmos</option>
-                      <option value="VM-towers">VM-towers</option>
+
+                {/* Section A: Organizational Placement */}
+                <SectionAccordion
+                  title="Organizational Placement"
+                  isOpen={expandedSections.orgPlacement}
+                  onToggle={() => toggleSection('orgPlacement')}
+                  icon={FiFolder}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" name="department" placeholder="Department" className="form-input w-full" value={formData.department} onChange={handleChange} />
+                    
+                    <select name="business_unit" className="form-input w-full" value={formData.business_unit} onChange={handleChange} required>
+                      <option value="">Business Unit (Group)</option>
+                      {formData.business_unit && !['ValueMomentum','OwlSure'].includes(formData.business_unit) && (
+                        <option value={formData.business_unit}>{formData.business_unit}</option>
+                      )}
+                      <option value="ValueMomentum">ValueMomentum</option>
+                      <option value="OwlSure">OwlSure</option>
                     </select>
-                  )}
-                  <div className="form-group">
-                    <select
-                      name="work_mode"
-                      className="form-input w-full"
-                      value={formData.work_mode}
-                      onChange={handleChange}
-                      required
-                    >
+
+                    <select name="tsc" className="form-input w-full" value={formData.tsc} onChange={handleChange} required>
+                      <option value="">Technology Solution Center (TSC)</option>
+                      {formData.tsc && !['Core Platforms','Platform, App & Infra','Data & BI','Advanced Analytics','Risk Analytics'].includes(formData.tsc) && (
+                        <option value={formData.tsc}>{formData.tsc}</option>
+                      )}
+                      <option value="Core Platforms">Core Platforms</option>
+                      <option value="Platform, App & Infra">Platform, App & Infra</option>
+                      <option value="Data & BI">Data & BI</option>
+                      <option value="Advanced Analytics">Advanced Analytics</option>
+                      <option value="Risk Analytics">Risk Analytics</option>
+                    </select>
+
+                    <select name="sub_tsc" className="form-input w-full" value={formData.sub_tsc} onChange={handleChange} required>
+                      <option value="">Sub-TSC</option>
+                      {formData.sub_tsc && !['Core','CCM','Domain','QE','App','Data'].includes(formData.sub_tsc) && (
+                        <option value={formData.sub_tsc}>{formData.sub_tsc}</option>
+                      )}
+                      <option value="Core">Core</option>
+                      <option value="CCM">CCM</option>
+                      <option value="Domain">Domain</option>
+                      <option value="QE">QE</option>
+                      <option value="App">App</option>
+                      <option value="Data">Data</option>
+                    </select>
+
+                    <select name="allocation_unit" className="form-input w-full" value={formData.allocation_unit} onChange={handleChange} required>
+                      <option value="">Select Allocation Unit</option>
+                      {formData.allocation_unit && !['ValueMomentum','OwlSure'].includes(formData.allocation_unit) && (
+                        <option value={formData.allocation_unit}>{formData.allocation_unit}</option>
+                      )}
+                      <option value="ValueMomentum">ValueMomentum</option>
+                      <option value="OwlSure">OwlSure</option>
+                    </select>
+
+                    <input type="text" name="account" placeholder="Account" className="form-input w-full" value={formData.account} onChange={handleChange} />
+                    <input type="text" name="project" placeholder="Project" className="form-input w-full animate-pulse" value={formData.project} onChange={handleChange} />
+                  </div>
+                </SectionAccordion>
+
+                {/* Section B: Role Specifications */}
+                <SectionAccordion
+                  title="Employment & Role Specifications"
+                  isOpen={expandedSections.roleSpecs}
+                  onToggle={() => toggleSection('roleSpecs')}
+                  icon={FiBriefcase}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" name="designation" placeholder="Designation" className="form-input w-full font-semibold" value={formData.designation} onChange={handleChange} />
+                    <input type="text" name="position" placeholder="Position" className="form-input w-full" value={formData.position} onChange={handleChange} />
+                    <input type="text" name="grade" placeholder="Grade" className="form-input w-full" value={formData.grade} onChange={handleChange} />
+                    
+                    <select name="employment_type" className="form-input w-full" value={formData.employment_type} onChange={handleChange} required>
+                      <option value="">Employment Type</option>
+                      {formData.employment_type && !['Full-time','Contractor'].includes(formData.employment_type) && (
+                        <option value={formData.employment_type}>{formData.employment_type}</option>
+                      )}
+                      <option value="Full-time">Full-time</option>
+                      <option value="Contractor">Contractor</option>
+                    </select>
+
+                    <select name="facility" className="form-input w-full" value={formData.facility} onChange={handleChange} required>
+                      <option value="">Facility</option>
+                      {formData.facility && !['Hyderabad','Coimbatore','Pune','Banglore'].includes(formData.facility) && (
+                        <option value={formData.facility}>{formData.facility}</option>
+                      )}
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Coimbatore">Coimbatore</option>
+                      <option value="Pune">Pune</option>
+                      <option value="Banglore">Banglore</option>
+                    </select>
+
+                    {formData.facility === 'Hyderabad' && (
+                      <select name="work_location" className="form-input w-full" value={formData.work_location} onChange={handleChange} required>
+                        <option value="">Work Location</option>
+                        <option value="Palnadu">Palnadu</option>
+                        <option value="Mantri cosmos">Mantri cosmos</option>
+                        <option value="VM-towers">VM-towers</option>
+                      </select>
+                    )}
+
+                    <select name="work_mode" className="form-input w-full" value={formData.work_mode} onChange={handleChange} required>
                       <option value="">Work Mode</option>
-                      {formData.work_mode && !['Remote','Work from Office'].includes(formData.work_mode) && (
+                      {formData.work_mode && !['Work from Office','Remote'].includes(formData.work_mode) && (
                         <option value={formData.work_mode}>{formData.work_mode}</option>
                       )}
                       <option value="Remote">Remote</option>
                       <option value="Work from Office">Work from Office</option>
                     </select>
+                    
+                    <input type="text" name="reporting_manager" placeholder="Reporting Manager (Full Name)" className="form-input w-full" value={formData.reporting_manager} onChange={handleChange} />
+                    <input type="text" name="probation_period" placeholder="Probation Period" className="form-input w-full" value={formData.probation_period} onChange={handleChange} />
+                    <input type="text" name="notice_period" placeholder="Notice Period" className="form-input w-full" value={formData.notice_period} onChange={handleChange} />
+                    
+                    <div className="col-span-1">
+                      <label htmlFor="joining_date" className="block text-sm font-semibold text-gray-700 mb-1">Joining Date</label>
+                      <input type="date" id="joining_date" name="joining_date" className="form-input w-full" value={formData.joining_date} onChange={handleChange} />
+                    </div>
                   </div>
-                  <input type="text" name="reporting_manager" placeholder="Reporting Manager (Full Name)" className="form-input w-full" value={formData.reporting_manager} onChange={handleChange} />
-                  <div className="col-span-1">
-                    <label htmlFor="joining_date" className="block text-sm font-semibold text-gray-700 mb-1">Joining Date</label>
-                    <input type="date" id="joining_date" name="joining_date" className="form-input w-full" value={formData.joining_date} onChange={handleChange} />
-                  </div>
-                  <input type="text" name="probation_period" placeholder="Probation Period" className="form-input w-full" value={formData.probation_period} onChange={handleChange} />
-                  <input type="text" name="notice_period" placeholder="Notice Period" className="form-input w-full" value={formData.notice_period} onChange={handleChange} />
-                </div>
+                </SectionAccordion>
+
                 <div className="flex justify-between mt-6">
                   <button type="button" onClick={() => goToStep(1)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
                     Back
@@ -962,44 +1025,97 @@ const OfferLetterForm = () => {
                 </div>
               </motion.div>
             )}
+
             {currentStep === 3 && (
               <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="card mb-6">
-                {/* Compensation Section */}
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Compensation Details</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 border-teal-50">Compensation Details</h2>
                 {renderRequiredSummary(3)}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div><input type="number" name="current_ctc" placeholder="Current CTC" className="form-input w-full" value={formData.current_ctc} onChange={handleChange} />{renderCurrencyPreview('current_ctc')}</div>
-                  <div><input type="number" name="ectc" placeholder="ECTC" className="form-input w-full" value={formData.ectc} onChange={handleChange} />{renderCurrencyPreview('ectc')}</div>
-                  <div><input type="number" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full" value={formData.vam_proposed_ctc} onChange={handleChange} />{renderCurrencyPreview('vam_proposed_ctc')}</div>
-                  <div><input type="number" name="revised_ctc" placeholder="Revised CTC (after initial Offer)" className="form-input w-full" value={formData.revised_ctc} onChange={handleChange} />{renderCurrencyPreview('revised_ctc')}</div>
-                  <div><input type="number" name="total_salary" placeholder="Total Salary" className="form-input w-full" value={formData.total_salary} onChange={handleTotalSalaryChange} />{renderCurrencyPreview('total_salary')}</div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      name="deviation"
-                      placeholder="Deviation (in percentage)"
-                      className="form-input w-full"
-                      value={calculateDeviation()}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      onClick={calculateSalaryBreakdown}
-                      disabled={calculatingBreakdown || !formData.total_salary}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap"
-                    >
-                      {calculatingBreakdown ? 'Calculating...' : 'Calculate'}
-                    </button>
+
+                {/* Section A: Compensation Baseline */}
+                <SectionAccordion
+                  title="Salary & Base Compensation"
+                  isOpen={expandedSections.compBase}
+                  onToggle={() => toggleSection('compBase')}
+                  icon={FiDollarSign}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Current CTC</label>
+                      <input type="text" name="current_ctc" placeholder="Current CTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.current_ctc)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">ECTC</label>
+                      <input type="text" name="ectc" placeholder="ECTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.ectc)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Proposed VAM CTC</label>
+                      <input type="text" name="vam_proposed_ctc" placeholder="VAM Proposed CTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.vam_proposed_ctc)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Revised CTC (after initial offer)</label>
+                      <input type="text" name="revised_ctc" placeholder="Revised CTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.revised_ctc)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Total Salary</label>
+                      <input type="text" name="total_salary" placeholder="Total Salary" className="form-input w-full font-extrabold text-teal-900 border-2 border-teal-200 bg-teal-50/40" value={formatINR(formData.total_salary)} onChange={handleCurrencyChange} />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Deviation (%) & Calculator</label>
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          name="deviation"
+                          placeholder="Deviation"
+                          className="form-input w-full bg-gray-50 border-gray-300 font-semibold"
+                          value={calculateDeviation() ? `${calculateDeviation()}%` : ''}
+                          readOnly
+                        />
+                        <button
+                          type="button"
+                          onClick={calculateSalaryBreakdown}
+                          disabled={calculatingBreakdown || !formData.total_salary}
+                          className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-lg hover:shadow transition-all disabled:opacity-50 font-bold"
+                        >
+                          {calculatingBreakdown ? 'Calculating...' : 'Calculate'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div><input type="number" name="jb_amt" placeholder="JB Amount (Rs)" className="form-input w-full" value={formData.jb_amt} onChange={handleChange} />{renderCurrencyPreview('jb_amt')}</div>
-                  <input type="text" name="jb_reason" placeholder="JB Reason" className="form-input w-full" value={formData.jb_reason} onChange={handleChange} />
-                  <input type="number" name="days_lapsed" placeholder="Days Lapsed" className="form-input w-full" value={formData.days_lapsed} onChange={handleChange} />
-                  <div><input type="number" name="np_buyout_amt" placeholder="NP Buyout (If yes - amt)" className="form-input w-full" value={formData.np_buyout_amt} onChange={handleChange} />{renderCurrencyPreview('np_buyout_amt')}</div>
-                  <div className="col-span-1">
-                    <label htmlFor="np_buyout_mail_approval_date" className="block text-sm font-semibold text-gray-700 mb-1">NP Buyout Mail Approval Date</label>
-                    <input type="date" id="np_buyout_mail_approval_date" name="np_buyout_mail_approval_date" className="form-input w-full" value={formData.np_buyout_mail_approval_date} onChange={handleChange} />
+                </SectionAccordion>
+
+                {/* Section B: Allowances & Sign-on Bonuses */}
+                <SectionAccordion
+                  title="Sign-on Bonuses, Buyouts & Allowances"
+                  isOpen={expandedSections.allowances}
+                  onToggle={() => toggleSection('allowances')}
+                  icon={FiLock}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Signing Bonus (JB Amount)</label>
+                      <input type="text" name="jb_amt" placeholder="JB Amount" className="form-input w-full font-semibold" value={formatINR(formData.jb_amt)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">JB Reason</label>
+                      <input type="text" name="jb_reason" placeholder="JB Reason" className="form-input w-full" value={formData.jb_reason} onChange={handleChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">Notice Period Buyout Amount</label>
+                      <input type="text" name="np_buyout_amt" placeholder="NP Buyout Amount" className="form-input w-full font-semibold" value={formatINR(formData.np_buyout_amt)} onChange={handleCurrencyChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Days Lapsed</label>
+                      <input type="number" name="days_lapsed" placeholder="Days Lapsed" className="form-input w-full" value={formData.days_lapsed} onChange={handleChange} />
+                    </div>
+                    
+                    <div className="col-span-1">
+                      <label htmlFor="np_buyout_mail_approval_date" className="block text-sm font-semibold text-gray-700 mb-1">NP Buyout Mail Approval Date</label>
+                      <input type="date" id="np_buyout_mail_approval_date" name="np_buyout_mail_approval_date" className="form-input w-full" value={formData.np_buyout_mail_approval_date} onChange={handleChange} />
+                    </div>
                   </div>
-                </div>
+                </SectionAccordion>
+
                 {/* Salary Breakdown Display */}
                 {calculatingBreakdown && (
                   <div className="mt-8 p-6 bg-blue-50 rounded-xl">
@@ -1009,94 +1125,87 @@ const OfferLetterForm = () => {
                     </div>
                   </div>
                 )}
+                
                 {salaryBreakdown && (
-                  <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
-                    <h3 className="text-xl font-semibold mb-4 text-teal-700">Salary Breakdown</h3>
-                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                      <table className="min-w-full text-sm border border-gray-300">
+                  <div className="mt-8 p-6 bg-white rounded-xl shadow-lg border border-teal-50">
+                    <h3 className="text-xl font-bold mb-4 text-teal-700 border-b pb-2">Salary Breakdown</h3>
+                    <div className="overflow-x-auto border border-teal-100 rounded-lg shadow-sm">
+                      <table className="min-w-full text-sm border-collapse bg-white">
                         <thead>
-                          <tr className="bg-blue-100">
-                            <th className="px-3 py-2 text-center font-bold" colSpan="3">Component A - Earnings</th>
+                          <tr className="bg-teal-50/50">
+                            <th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component A - Earnings</th>
                           </tr>
-                          <tr className="bg-gray-50">
-                            <th className="px-3 py-2 text-left font-semibold">Earnings</th>
-                            <th className="px-3 py-2 text-right font-semibold">Monthly Amount</th>
-                            <th className="px-3 py-2 text-right font-semibold">Annual</th>
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <th className="px-4 py-2 text-left font-semibold text-gray-600">Earnings</th>
+                            <th className="px-4 py-2 text-right font-semibold text-gray-600">Monthly Amount</th>
+                            <th className="px-4 py-2 text-right font-semibold text-gray-600">Annual</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr><td className="px-3 py-2">Basic Salary</td><td className="px-3 py-2 text-right">{salaryBreakdown?.basicMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">House Rent Allowance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.hraMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Conveyance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">LTA</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Food allowance</td><td className="px-3 py-2 text-right">{salaryBreakdown?.foodMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Earnings</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
-                          <tr className="bg-blue-100"><th className="px-3 py-2 text-center font-bold" colSpan="3">Component B - Statutory Benefits</th></tr>
-                          <tr className="bg-gray-50"><th className="px-3 py-2 text-left font-semibold">Statutory Benefits</th><th></th><th></th></tr>
-                          <tr><td className="px-3 py-2">Employer PF</td><td className="px-3 py-2 text-right">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Gratuity</td><td className="px-3 py-2 text-right">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Total</td><td className="px-3 py-2 text-right">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Annual CTC (A+B)</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
-                          <tr className="bg-blue-100"><th className="px-3 py-2 text-center font-bold" colSpan="3">Deductions</th></tr>
-                          <tr><td className="px-3 py-2">Provident Fund (Employee & Employer)</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Gratuity</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Professional Tax</td><td className="px-3 py-2 text-right">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-blue-50"><td className="px-3 py-2">Total Deductions</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="px-3 py-2 text-right">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
-                          <tr><td className="px-3 py-2">Income Tax</td><td></td><td className="px-3 py-2 text-right">As applicable</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Basic Salary</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.basicMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">House Rent Allowance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.hraMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Conveyance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">LTA</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Food allowance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.foodMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-4 py-2 text-teal-800">Total Earnings</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
+                          <tr className="bg-teal-50/50"><th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component B - Statutory Benefits</th></tr>
+                          <tr className="bg-gray-50 border-b border-gray-200"><th className="px-4 py-2 text-left font-semibold text-gray-600">Statutory Benefits</th><th></th><th></th></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Employer PF</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Gratuity</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Total</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-4 py-2 text-teal-800">Total Annual CTC (A+B)</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
+                          <tr className="bg-teal-50/50"><th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Deductions</th></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Provident Fund (Employee & Employer)</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Gratuity</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Professional Tax</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-red-50/50 border-b border-red-100"><td className="px-4 py-2 text-red-800">Total Deductions</td><td className="px-4 py-2 text-right text-red-800">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="px-4 py-2 text-right text-red-800">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
+                          <tr><td className="px-4 py-2 text-gray-500">Income Tax</td><td></td><td className="px-4 py-2 text-right text-gray-500 font-semibold">As applicable</td></tr>
                         </tbody>
                       </table>
                     </div>
                   </div>
                 )}
-                <div className="form-group">
-                  <label>Download Offer Letter (PDF):</label>
-                  {pdfPath && <a href={pdfPath} target="_blank" rel="noopener noreferrer">Download PDF</a>}
-                </div>
-                <div className="form-group">
-                  <label>Download Offer Letter (DOCX):</label>
-                  {docxPath && <a href={docxPath} target="_blank" rel="noopener noreferrer">Download DOCX</a>}
-                </div>
-                <div className="flex justify-between mt-6">
-                  <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all">
+
+                <div className="flex justify-between mt-8 border-t pt-6 border-gray-100">
+                  <button type="button" onClick={() => goToStep(2)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold shadow hover:shadow-xl transition-all duration-300">
                     Back
                   </button>
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
                     <button 
                       type="button" 
                       onClick={() => setShowPreviewModal(true)} 
-                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 hover:scale-[1.02]"
                     >
                       <FiEye className="w-5 h-5" />
                       View Preview
                     </button>
-                    <button type="button" onClick={handleGenerateDocx} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
-                      Generate DOCX
-                    </button>
-                    <button type="submit" className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all" disabled={loading}>
-                      {loading ? 'Generating...' : 'Generate Offer Letter'}
+                    <button type="submit" className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex items-center gap-2" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <span>Generate Offer Letter</span>
+                      )}
                     </button>
                   </div>
                 </div>
-                {docxPath && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-                    <span className="font-semibold text-blue-700">Offer letter (docx) generated:</span>
-                    <a href={`/${docxPath}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 underline">Download / Preview</a>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
         </form>
       </div>
+      
       <Modal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} title="Send Offer Letter Email?">
         {emailSent ? (
-          <div className="text-green-700 font-semibold text-lg">Email sent successfully!</div>
+          <div className="text-green-700 font-semibold text-lg py-4 text-center">Email sent successfully!</div>
         ) : (
           <>
-            <div className="mb-4">Do you want to send the offer letter email to the candidate now?</div>
-            <div className="flex gap-4 justify-end">
-              <button onClick={() => setShowEmailModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">No</button>
-              <button onClick={handleSendEmail} className="px-4 py-2 bg-teal-600 text-white rounded-lg" disabled={emailSending}>{emailSending ? 'Sending...' : 'Yes, Send Email'}</button>
+            <div className="mb-6 mt-2 text-gray-600">Do you want to send the password-protected offer letter PDF to the candidate now?</div>
+            <div className="flex gap-4 justify-end border-t pt-4">
+              <button onClick={() => setShowEmailModal(false)} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors">No</button>
+              <button onClick={handleSendEmail} className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow transition-all disabled:opacity-50" disabled={emailSending}>{emailSending ? 'Sending...' : 'Yes, Send Email'}</button>
             </div>
           </>
         )}
@@ -1106,153 +1215,22 @@ const OfferLetterForm = () => {
       {showPreviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-start justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
-            {/* Fixed Modal Header */}
             <div className="flex-shrink-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
               <div>
-                <h2 className="text-2xl font-bold">Offer Letter Preview</h2>
+                <h2 className="text-2xl font-bold text-white">Offer Letter Preview</h2>
                 <p className="text-teal-100 text-sm">Review before generating final document</p>
               </div>
               <div className="flex gap-3">
-                {/* <button
-                  onClick={() => {
-                    // Create a new window with just the preview content
-                    const printWindow = window.open('', '_blank', 'width=800,height=600');
-                    const previewElement = document.querySelector('.print-content');
-                    
-                    if (printWindow && previewElement) {
-                      printWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                          <title>Offer Letter - ${formData.candidate_name || 'Candidate'}</title>
-                          <style>
-                            * {
-                              margin: 0;
-                              padding: 0;
-                              box-sizing: border-box;
-                            }
-                            body {
-                              font-family: 'Times New Roman', serif;
-                              background: white;
-                              color: black;
-                              line-height: 1.5;
-                            }
-                            @page {
-                              size: A4;
-                              margin: 15mm;
-                            }
-                            .pdf-page {
-                              width: 100%;
-                              min-height: 297mm;
-                              padding: 20mm;
-                              background: white;
-                              page-break-after: always;
-                              margin-bottom: 20px;
-                            }
-                            .pdf-page:last-child {
-                              page-break-after: avoid;
-                              margin-bottom: 0;
-                            }
-                            table {
-                              width: 100%;
-                              border-collapse: collapse;
-                              margin: 10px 0;
-                            }
-                            th, td {
-                              border: 1px solid black;
-                              padding: 8px;
-                              text-align: left;
-                            }
-                            th {
-                              background-color: #f0f0f0;
-                              font-weight: bold;
-                            }
-                            .text-center { text-align: center; }
-                            .text-right { text-align: right; }
-                            .font-bold { font-weight: bold; }
-                            .underline { text-decoration: underline; }
-                            .border-b { border-bottom: 2px solid black; padding-bottom: 10px; }
-                            .border-t { border-top: 2px solid black; padding-top: 10px; }
-                            .border-l-4 { border-left: 4px solid black; padding-left: 10px; }
-                            .bg-gray-50 { background-color: #f9f9f9; }
-                            .bg-gray-100 { background-color: #f3f3f3; }
-                            .bg-black { background-color: black; color: white; }
-                            .text-black { color: black; }
-                            .p-3 { padding: 12px; }
-                            .p-4 { padding: 16px; }
-                            .mb-2 { margin-bottom: 8px; }
-                            .mb-4 { margin-bottom: 16px; }
-                            .mb-6 { margin-bottom: 24px; }
-                            .mt-4 { margin-top: 16px; }
-                            .mt-6 { margin-top: 24px; }
-                            .grid { display: grid; }
-                            .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-                            .gap-1 { gap: 4px; }
-                            .gap-2 { gap: 8px; }
-                            .flex { display: flex; }
-                            .justify-between { justify-content: space-between; }
-                            .items-center { align-items: center; }
-                            .space-y-1 > * + * { margin-top: 4px; }
-                            .space-y-4 > * + * { margin-top: 16px; }
-                            .space-y-5 > * + * { margin-top: 20px; }
-                            .text-xs { font-size: 10px; }
-                            .text-sm { font-size: 12px; }
-                            .text-lg { font-size: 18px; }
-                            .text-xl { font-size: 20px; }
-                            .text-2xl { font-size: 24px; }
-                            .leading-tight { line-height: 1.25; }
-                            .leading-relaxed { line-height: 1.6; }
-                            img { max-width: 100px; height: auto; }
-                            @media print {
-                              body { background: white !important; }
-                              .pdf-page { 
-                                border: none !important; 
-                                margin-bottom: 0 !important;
-                                box-shadow: none !important;
-                                page-break-after: always;
-                              }
-                              .pdf-page:last-child {
-                                page-break-after: avoid;
-                              }
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          ${previewElement.innerHTML}
-                        </body>
-                        </html>
-                      `);
-                      
-                      printWindow.document.close();
-                      
-                      // Wait for content to load then print
-                      setTimeout(() => {
-                        printWindow.focus();
-                        printWindow.print();
-                        printWindow.close();
-                      }, 500);
-                    } else {
-                      toast.error('Unable to open print preview');
-                    }
-                  }}
-                  className="px-4 py-2 bg-white text-teal-600 rounded-lg hover:bg-gray-100 transition font-semibold flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  Print Preview
-                </button> */}
                 <button
                   onClick={() => setShowPreviewModal(false)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold"
+                  className="px-5 py-2 bg-red-500 text-white hover:bg-red-600 rounded-lg transition font-semibold"
                 >
                   Close
                 </button>
               </div>
             </div>
             
-            {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto pdf-container">
+            <div className="flex-1 overflow-y-auto pdf-container bg-gray-50 py-6">
               <OfferLetterPreview data={formData} salaryBreakdown={salaryBreakdown} />
             </div>
           </div>
