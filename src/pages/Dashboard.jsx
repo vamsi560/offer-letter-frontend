@@ -416,7 +416,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/20 to-indigo-50/30">
       <Navbar user={dashboardData.user} />
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+      <div className="w-full max-w-[98%] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -550,12 +550,12 @@ const Dashboard = () => {
         </div>
 
         {/* Candidates Registry Table */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="w-full mb-8">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-2 card bg-white rounded-2xl p-6 shadow-md border"
+            className="w-full card bg-white rounded-2xl p-6 shadow-md border"
           >
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -728,90 +728,91 @@ const Dashboard = () => {
             )}
           </motion.div>
 
-          {/* Graphical Analytics Panel */}
-          <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="card bg-white rounded-2xl p-6 shadow-md border"
-            >
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
-                <FiTrendingUp className="text-teal-600" />
-                <span>Offer Volume Funnel</span>
-              </h2>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={65}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-              className="card bg-white rounded-2xl p-6 shadow-md border"
-            >
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
-                <FiBriefcase className="text-indigo-600" />
-                <span>Hires by Department</span>
-              </h2>
-              {deptChartData.length === 0 ? (
-                <p className="text-xs text-gray-400 py-8 text-center">No department metrics available</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={deptChartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                    <YAxis tick={{ fontSize: 9 }} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Dynamic Line Chart for Recruiter Activity Trends */}
-        {monthlyChartData.length > 0 && (
+        {/* Graphical Analytics Panel Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Chart 1: Offer Volume Funnel */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="card bg-white rounded-2xl p-6 shadow-md border mb-8"
+            transition={{ delay: 0.4 }}
+            className="card bg-white rounded-2xl p-6 shadow-md border"
           >
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
-              <FiTrendingUp className="text-green-600" />
-              <span>Recruiter Monthly Volume Trends</span>
+              <FiTrendingUp className="text-teal-600" />
+              <span>Offer Volume Funnel</span>
             </h2>
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={monthlyChartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis />
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={65}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip />
-                <Line type="monotone" dataKey="Volume" stroke="#10b981" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} />
-              </LineChart>
+                <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
             </ResponsiveContainer>
           </motion.div>
-        )}
+
+          {/* Chart 2: Hires by Department */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="card bg-white rounded-2xl p-6 shadow-md border"
+          >
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
+              <FiBriefcase className="text-indigo-600" />
+              <span>Hires by Department</span>
+            </h2>
+            {deptChartData.length === 0 ? (
+              <p className="text-xs text-gray-400 py-8 text-center">No department metrics available</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={deptChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                  <YAxis tick={{ fontSize: 9 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </motion.div>
+
+          {/* Chart 3: Recruiter Monthly Volume Trends */}
+          {monthlyChartData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="card bg-white rounded-2xl p-6 shadow-md border"
+            >
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
+                <FiTrendingUp className="text-green-600" />
+                <span>Recruiter Monthly Volume Trends</span>
+              </h2>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={monthlyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="Volume" stroke="#10b981" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </motion.div>
+          )}
+        </div>
       </div>
 
       {/* Floating Recruiter Bulk Action Dashboard Bar */}
