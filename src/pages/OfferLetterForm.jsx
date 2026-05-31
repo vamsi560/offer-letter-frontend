@@ -709,7 +709,7 @@ const OfferLetterForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
       <Navbar user={user} />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-[98%] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
@@ -789,7 +789,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('candidateDemographics')}
                   icon={FiFileText}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <input type="text" name="candidate_name" placeholder="Candidate Name (Full Name)" className="form-input w-full" value={formData.candidate_name} onChange={handleChange} />
                     <input type="tel" name="candidate_phone" placeholder="Contact No" className="form-input w-full" value={formData.candidate_phone} onChange={handleChange} />
                     <input type="email" name="candidate_email" placeholder="Email ID" className="form-input w-full" value={formData.candidate_email} onChange={handleChange} />
@@ -822,7 +822,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('recruiterDetails')}
                   icon={FiFolder}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
                       <option value="">Status</option>
                       {formData.status && !['Joined','Offer Made','Abscond','Decline','Revoked'].includes(formData.status) && (
@@ -879,7 +879,7 @@ const OfferLetterForm = () => {
                       <input type="date" id="date_of_offer" name="date_of_offer" className="form-input w-full" value={formData.date_of_offer} onChange={handleChange} />
                     </div>
                     
-                    <input type="text" name="comments" placeholder="Comments" className="form-input w-full col-span-1" value={formData.comments} onChange={handleChange} />
+                    <input type="text" name="comments" placeholder="Comments" className="form-input w-full col-span-1 lg:col-span-3" value={formData.comments} onChange={handleChange} />
                   </div>
                 </SectionAccordion>
 
@@ -903,7 +903,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('orgPlacement')}
                   icon={FiFolder}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <input type="text" name="department" placeholder="Department" className="form-input w-full" value={formData.department} onChange={handleChange} />
                     
                     <select name="business_unit" className="form-input w-full" value={formData.business_unit} onChange={handleChange} required>
@@ -961,7 +961,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('roleSpecs')}
                   icon={FiBriefcase}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <input type="text" name="designation" placeholder="Designation" className="form-input w-full font-semibold" value={formData.designation} onChange={handleChange} />
                     <input type="text" name="position" placeholder="Position" className="form-input w-full" value={formData.position} onChange={handleChange} />
                     <input type="text" name="grade" placeholder="Grade" className="form-input w-full" value={formData.grade} onChange={handleChange} />
@@ -1038,7 +1038,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('compBase')}
                   icon={FiDollarSign}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-teal-800 mb-1">Current CTC</label>
                       <input type="text" name="current_ctc" placeholder="Current CTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.current_ctc)} onChange={handleCurrencyChange} />
@@ -1091,7 +1091,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('allowances')}
                   icon={FiLock}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-teal-800 mb-1">Signing Bonus (JB Amount)</label>
                       <input type="text" name="jb_amt" placeholder="JB Amount" className="form-input w-full font-semibold" value={formatINR(formData.jb_amt)} onChange={handleCurrencyChange} />
@@ -1214,7 +1214,7 @@ const OfferLetterForm = () => {
       {/* Preview Modal */}
       {showPreviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-start justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95%] max-h-[95vh] flex flex-col">
             <div className="flex-shrink-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold text-white">Offer Letter Preview</h2>
