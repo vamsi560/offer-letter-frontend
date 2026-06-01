@@ -316,6 +316,25 @@ const OfferLetterForm = () => {
   const [docxPath, setDocxPath] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  const [generationProgress, setGenerationProgress] = useState(null);
+
+  const getProgressMessage = (status) => {
+    switch (status) {
+      case 'Generating':
+        return 'Compiling statutory splits & rendering placeholder templates...';
+      case 'PDF Generated':
+        return 'PDF document converted & PAN-encrypted successfully. Delivering secure mail notification...';
+      case 'Offer Made':
+        return 'Success! Candidate email dispatched with secure PDF attachment.';
+      case 'Email Failed':
+        return 'Document compiled, but candidate email dispatch failed.';
+      case 'Generation Failed':
+        return 'PDF conversion subprocess crashed. Check backend logs.';
+      default:
+        return 'Processing candidate records...';
+    }
+  };
+
   const requiredFieldsByStep = {
     1: [
       { key: 'candidate_name', label: 'Candidate Name' },
@@ -473,23 +492,60 @@ const OfferLetterForm = () => {
         ? await offerLetterAPI.update(candidateId, payload)
         : await offerLetterAPI.generate(payload)
       
+      const offerId = response.offer_letter_id;
+      
       // Clean draft on success
       localStorage.removeItem('offer_letter_draft');
       
       setLastOfferLetter(response)
-      setDocxPath(response.docx_path)
-      setPdfPath(response.pdf_path)
+      if (response.docx_path) setDocxPath(response.docx_path)
+      if (response.pdf_path) setPdfPath(response.pdf_path)
       
-      toast.success(
-        candidateId 
-          ? 'Offer details updated successfully! Generation running in background.' 
-          : 'Offer letter generation started in background!'
-      )
+      // Open full-screen progress animation overlay
+      setGenerationProgress({
+        show: true,
+        status: 'Generating',
+        message: 'Initiating document pipeline & compiling splits...'
+      });
       
-      // Since it runs in the background, navigate directly to dashboard
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 1500)
+      // Start polling status dynamically
+      const pollId = setInterval(async () => {
+        try {
+          const offerDetails = await offerLetterAPI.getById(offerId);
+          const currentStatus = offerDetails.status;
+          
+          setGenerationProgress(prev => ({
+            ...prev,
+            status: currentStatus,
+            message: getProgressMessage(currentStatus)
+          }));
+          
+          if (currentStatus === 'Offer Made') {
+            clearInterval(pollId);
+            setTimeout(() => {
+              setGenerationProgress(null);
+              toast.success('Offer letter generated and candidate notified successfully!');
+              navigate('/dashboard');
+            }, 1800);
+          } else if (currentStatus === 'Generation Failed') {
+            clearInterval(pollId);
+            setTimeout(() => {
+              setGenerationProgress(null);
+              toast.error('Failed to generate PDF document. Check server logs.');
+            }, 3000);
+          } else if (currentStatus === 'Email Failed') {
+            clearInterval(pollId);
+            setTimeout(() => {
+              setGenerationProgress(null);
+              toast.warning('Document generated successfully, but automated candidate email dispatch failed.');
+              navigate('/dashboard');
+            }, 3000);
+          }
+        } catch (pollErr) {
+          console.error('Polling error:', pollErr);
+        }
+      }, 1500);
+      
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to generate offer letter')
     } finally {
@@ -709,7 +765,7 @@ const OfferLetterForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-teal-100">
       <Navbar user={user} />
-      <div className="w-full max-w-[98%] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
@@ -1236,6 +1292,207 @@ const OfferLetterForm = () => {
           </div>
         </div>
       )}
+
+      {/* Dynamic Animated Generation Progress Overlay */}
+      <AnimatePresence>
+        {generationProgress?.show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <style>{`
+              @keyframes glide {
+                0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+                50% { transform: translateX(10px) translateY(-5px) rotate(10deg); }
+              }
+              .animate-glide {
+                animation: glide 1.8s ease-in-out infinite;
+              }
+            `}</style>
+            
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-lg w-full text-center shadow-3xl border border-white/20 flex flex-col items-center"
+            >
+              {/* Spinner/Status Icons */}
+              <div className="mb-6 relative flex items-center justify-center">
+                {['Generating', 'PDF Generated'].includes(generationProgress.status) ? (
+                  <div className="relative">
+                    <div className="animate-spin rounded-full h-20 w-20 border-4 border-teal-100 border-t-teal-600"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-teal-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </div>
+                  </div>
+                ) : generationProgress.status === 'Offer Made' ? (
+                  <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center border border-green-200 shadow-lg animate-bounce">
+                    <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center border border-red-200 shadow-lg">
+                    <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Title & Subtitle */}
+              <h3 className="text-2xl font-extrabold text-gray-800 mb-2">
+                {generationProgress.status === 'Generating' && 'Compiling Document...'}
+                {generationProgress.status === 'PDF Generated' && 'Securing & Delivering...'}
+                {generationProgress.status === 'Offer Made' && 'Offer Letter Dispatched!'}
+                {generationProgress.status === 'Email Failed' && 'Mail Dispatch Failed'}
+                {generationProgress.status === 'Generation Failed' && 'Compilation Failed'}
+              </h3>
+              <p className="text-xs text-gray-500 mb-6 max-w-sm font-medium">
+                {generationProgress.message}
+              </p>
+
+              {/* Glowing Dynamic Progress Bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2 mb-8 overflow-hidden relative border border-slate-50">
+                <div 
+                  className={`h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r ${
+                    generationProgress.status === 'Generation Failed'
+                      ? 'from-red-500 to-red-600'
+                      : generationProgress.status === 'Email Failed'
+                        ? 'from-amber-500 to-red-500'
+                        : 'from-teal-500 to-indigo-600'
+                  }`}
+                  style={{
+                    width: `${
+                      generationProgress.status === 'Generating' ? 35 :
+                      ['PDF Generated', 'Email Failed'].includes(generationProgress.status) ? 75 :
+                      generationProgress.status === 'Offer Made' ? 100 : 10
+                    }%`
+                  }}
+                />
+              </div>
+
+              {/* Refactored 4-Step Pipeline Indicators */}
+              <div className="w-full space-y-4 border-t pt-6 text-left">
+                
+                {/* Step 1: Drafting & Compiling */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      generationProgress.status !== 'Generating'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-teal-100 text-teal-700 animate-pulse'
+                    }`}>
+                      {generationProgress.status !== 'Generating' ? '✓' : '1'}
+                    </div>
+                    <span className={`text-sm font-semibold transition-colors duration-300 ${
+                      generationProgress.status !== 'Generating' ? 'text-gray-400 line-through' : 'text-gray-800'
+                    }`}>
+                      Drafting & Compiling Document
+                    </span>
+                  </div>
+                  {generationProgress.status === 'Generating' && (
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-teal-600 border-t-transparent"></div>
+                  )}
+                </div>
+
+                {/* Step 2: PDF Conversion & PAN Encryption */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      ['PDF Generated', 'Offer Made', 'Email Failed'].includes(generationProgress.status)
+                        ? 'bg-green-100 text-green-700'
+                        : generationProgress.status === 'Generating'
+                          ? 'bg-teal-50/50 text-teal-600'
+                          : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {['PDF Generated', 'Offer Made', 'Email Failed'].includes(generationProgress.status) ? '✓' : '2'}
+                    </div>
+                    <span className={`text-sm font-semibold transition-colors duration-300 ${
+                      ['PDF Generated', 'Offer Made', 'Email Failed'].includes(generationProgress.status)
+                        ? 'text-gray-400 line-through'
+                        : 'text-gray-400'
+                    }`}>
+                      Converting & Securing PDF (PAN-Encrypted)
+                    </span>
+                  </div>
+                  {generationProgress.status === 'Generating' && (
+                    <span className="text-xs text-gray-400 font-medium">Waiting...</span>
+                  )}
+                </div>
+
+                {/* Step 3: Dispatching Email to Candidate */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      generationProgress.status === 'Offer Made'
+                        ? 'bg-green-100 text-green-700'
+                        : generationProgress.status === 'Email Failed'
+                          ? 'bg-red-100 text-red-700'
+                          : generationProgress.status === 'PDF Generated'
+                            ? 'bg-teal-100 text-teal-700'
+                            : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {generationProgress.status === 'Offer Made' ? '✓' : generationProgress.status === 'Email Failed' ? '✗' : '3'}
+                    </div>
+                    <span className={`text-sm font-semibold transition-colors duration-300 ${
+                      generationProgress.status === 'Offer Made'
+                        ? 'text-gray-400 line-through'
+                        : generationProgress.status === 'Email Failed'
+                          ? 'text-red-500 font-bold'
+                          : generationProgress.status === 'PDF Generated'
+                            ? 'text-teal-700 font-bold'
+                            : 'text-gray-400'
+                    }`}>
+                      {generationProgress.status === 'PDF Generated' ? 'Sending Email to Candidate...' : 'Dispatching Email to Candidate'}
+                    </span>
+                  </div>
+                  {generationProgress.status === 'PDF Generated' && (
+                    <div className="text-teal-600 animate-glide">
+                      <FiSend className="w-4 h-4" />
+                    </div>
+                  )}
+                  {['Generating'].includes(generationProgress.status) && (
+                    <span className="text-xs text-gray-400 font-medium">Waiting...</span>
+                  )}
+                  {generationProgress.status === 'Email Failed' && (
+                    <span className="text-xs text-red-500 font-bold">Failed</span>
+                  )}
+                </div>
+
+                {/* Step 4: Email Successfully Sent */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      generationProgress.status === 'Offer Made'
+                        ? 'bg-green-100 text-green-700 animate-bounce'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {generationProgress.status === 'Offer Made' ? '✓' : '4'}
+                    </div>
+                    <span className={`text-sm font-semibold transition-colors duration-300 ${
+                      generationProgress.status === 'Offer Made' ? 'text-green-700 font-extrabold' : 'text-gray-400'
+                    }`}>
+                      {generationProgress.status === 'Offer Made' ? 'Email Successfully Sent!' : 'Email Successfully Sent'}
+                    </span>
+                  </div>
+                  {generationProgress.status === 'Offer Made' && (
+                    <span className="text-xs text-green-600 font-bold animate-pulse">Completed</span>
+                  )}
+                  {!['Offer Made'].includes(generationProgress.status) && (
+                    <span className="text-xs text-gray-400 font-medium">Waiting...</span>
+                  )}
+                </div>
+
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

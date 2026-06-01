@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [downloadingPdf, setDownloadingPdf] = useState({})
   const [statusMap, setStatusMap] = useState({})
   const [savingStatus, setSavingStatus] = useState({})
+  const [sendingEmail, setSendingEmail] = useState({})
   
   // Interactive Filters States
   const [searchTerm, setSearchTerm] = useState('')
@@ -307,6 +308,29 @@ const Dashboard = () => {
     }
   }
 
+  const handleSingleSendEmail = async (candidate) => {
+    setSendingEmail(prev => ({ ...prev, [candidate.id]: true }))
+    try {
+      toast.info(`Sending email to ${candidate.name} in the background...`)
+      await offerLetterAPI.sendEmail({
+        candidate_email: candidate.email,
+        pdf_path: candidate.pdf_path,
+        candidate_name: candidate.name,
+        designation: candidate.position,
+        joining_date: candidate.joining_date || candidate.offer_date,
+        facility: candidate.facility || 'Hyderabad',
+        work_mode: candidate.work_mode || 'Work from Office',
+        tag_poc: candidate.tag_poc || 'HR Operations'
+      })
+      toast.success(`Email sent successfully to ${candidate.name}!`)
+    } catch (error) {
+      console.error(error)
+      toast.error(`Failed to send email to ${candidate.name}.`)
+    } finally {
+      setSendingEmail(prev => ({ ...prev, [candidate.id]: false }))
+    }
+  }
+
   // --- ADVANCED ANALYTICS METRICS ---
   const calculateMetrics = (candidates) => {
     if (!candidates || candidates.length === 0) return { oar: '0.0%', tto: '2.5 days' }
@@ -416,7 +440,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/20 to-indigo-50/30">
       <Navbar user={dashboardData.user} />
       
-      <div className="w-full max-w-[98%] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -699,20 +723,37 @@ const Dashboard = () => {
                             )}
                             
                             {candidate.pdf_path ? (
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleDownloadPdf(candidate)}
-                                disabled={downloadingPdf[candidate.id]}
-                                className="px-3 py-2.5 bg-gradient-to-r from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 border border-teal-200 text-teal-700 text-sm rounded-lg hover:shadow transition-all duration-300 flex items-center justify-center disabled:opacity-50"
-                                title="Download PDF"
-                              >
-                                {downloadingPdf[candidate.id] ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-700"></div>
-                                ) : (
-                                  <FiDownload className="w-4 h-4" />
-                                )}
-                              </motion.button>
+                              <div className="flex gap-2">
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleDownloadPdf(candidate)}
+                                  disabled={downloadingPdf[candidate.id]}
+                                  className="px-3 py-2.5 bg-gradient-to-r from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 border border-teal-200 text-teal-700 text-sm rounded-lg hover:shadow transition-all duration-300 flex items-center justify-center disabled:opacity-50"
+                                  title="Download PDF"
+                                >
+                                  {downloadingPdf[candidate.id] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-700"></div>
+                                  ) : (
+                                    <FiDownload className="w-4 h-4" />
+                                  )}
+                                </motion.button>
+                                
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleSingleSendEmail(candidate)}
+                                  disabled={sendingEmail[candidate.id]}
+                                  className="px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200 border border-indigo-200 text-indigo-700 text-sm rounded-lg hover:shadow transition-all duration-300 flex items-center justify-center disabled:opacity-50"
+                                  title="Send Email to Candidate"
+                                >
+                                  {sendingEmail[candidate.id] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-700"></div>
+                                  ) : (
+                                    <FiSend className="w-4 h-4" />
+                                  )}
+                                </motion.button>
+                              </div>
                             ) : (
                               candidate.status === 'Generating' && (
                                 <div className="text-xs text-teal-600 font-semibold animate-pulse">Building PDF...</div>
@@ -819,12 +860,13 @@ const Dashboard = () => {
       {/* Floating Recruiter Bulk Action Dashboard Bar */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-gray-900 text-white rounded-2xl shadow-2xl p-5 border border-gray-800 flex flex-col md:flex-row items-center gap-5 w-[90%] max-w-4xl"
-          >
+          <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-gray-900 text-white rounded-2xl shadow-2xl p-5 border border-gray-800 flex flex-col md:flex-row items-center gap-5 w-full max-w-4xl pointer-events-auto"
+            >
             <div className="flex items-center gap-3 border-b md:border-b-0 md:border-r border-gray-800 pb-3 md:pb-0 md:pr-5">
               <div className="bg-teal-500 text-white p-2.5 rounded-xl">
                 <FiUsers className="w-5 h-5" />
@@ -887,7 +929,8 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
