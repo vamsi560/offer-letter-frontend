@@ -50,11 +50,11 @@ import { offerLetterAPI } from '../services/api'
 // Custom collapsible accordion item for smart grouping
 const SectionAccordion = ({ title, isOpen, onToggle, children, icon: Icon }) => {
   return (
-    <div className="border border-teal-100 rounded-xl overflow-hidden mb-6 bg-white shadow-sm hover:shadow transition-shadow duration-300">
+    <div className="border border-teal-100 rounded-xl overflow-hidden mb-4 bg-white shadow-sm hover:shadow transition-shadow duration-300">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex justify-between items-center px-6 py-4 bg-gradient-to-r from-teal-50/70 to-teal-100/30 hover:from-teal-100/50 transition-colors text-left"
+        className="w-full flex justify-between items-center px-4.5 py-3 bg-gradient-to-r from-teal-50/70 to-teal-100/30 hover:from-teal-100/50 transition-colors text-left"
       >
         <span className="font-semibold text-teal-800 text-base flex items-center space-x-3">
           {Icon && <Icon className="w-5 h-5 text-teal-600" />}
@@ -65,12 +65,41 @@ const SectionAccordion = ({ title, isOpen, onToggle, children, icon: Icon }) => 
         </span>
       </button>
       <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1200px] opacity-100 border-t border-teal-50' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}>
-        <div className="p-6 bg-white">
+        <div className="p-4 bg-white">
           {children}
         </div>
       </div>
     </div>
   );
+};
+
+// TSC → Sub-TSC hierarchical mapping for ValueMomentum business unit
+const TSC_SUB_TSC_MAP = {
+  'Product & Underwriting': [],
+  'Claims': [],
+  'Distribution': [],
+  'Emerging Technologies': [],
+  'Enterprise IT': [],
+  'Delivery Management': [],
+  'Operations Center': [],
+  'Core Platforms': ['Core', 'CCM', 'Domain'],
+  'Data & Advanced Analytics': ['Data', 'Advanced Analytics', 'QE'],
+  'Platform, App & Infra': ['Platform', 'App', 'Infra'],
+  'Software & AI Assurance': ['QE'],
+  'Risk Analytics': [],
+  'Admin & Facilities': [],
+  'Executive Management': [],
+  'Finance': [],
+  'Human Resources': [],
+  'Marketing & Communications': [],
+  'Operations': [],
+  'Project Management Office': [],
+  'Talent Acquisition Group': [],
+  'Talent Development': [],
+  'Account Management': [],
+  'Business Development': [],
+  'Market Success': [],
+  'Customer Success': [],
 };
 
 const OfferLetterForm = () => {
@@ -132,6 +161,7 @@ const OfferLetterForm = () => {
     days_lapsed: '',
     np_buyout_amt: '',
     np_buyout_mail_approval_date: '',
+    pli_amount: '',
   })
 
   // Accordion Expand States
@@ -449,10 +479,31 @@ const OfferLetterForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     const normalizedValue = name === 'pan' ? value.toUpperCase().replace(/\s+/g, '') : value
-    setFormData((prev) => ({
-      ...prev,
-      [name]: normalizedValue
-    }))
+
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: normalizedValue }
+
+      // Side effects when business_unit changes
+      if (name === 'business_unit') {
+        if (value === 'OwlSure') {
+          updated.tsc = ''
+          updated.sub_tsc = ''
+          updated.allocation_unit = 'OwlSure'
+        } else {
+          // Reset TSC/Sub-TSC when switching back to ValueMomentum
+          updated.tsc = ''
+          updated.sub_tsc = ''
+          updated.allocation_unit = ''
+        }
+      }
+
+      // Side effect when tsc changes — reset sub_tsc
+      if (name === 'tsc') {
+        updated.sub_tsc = ''
+      }
+
+      return updated
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -485,7 +536,8 @@ const OfferLetterForm = () => {
         deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
         jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
         days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
-        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
+        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined,
+        pli_amount: formData.pli_amount ? parseFloat(formData.pli_amount) : undefined
       };
 
       const response = candidateId
@@ -598,7 +650,8 @@ const OfferLetterForm = () => {
         deviation: computedDeviation ? parseInt(computedDeviation, 10) : undefined,
         jb_amt: formData.jb_amt ? parseFloat(formData.jb_amt) : undefined,
         days_lapsed: formData.days_lapsed ? parseInt(formData.days_lapsed) : undefined,
-        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined
+        np_buyout_amt: formData.np_buyout_amt ? parseFloat(formData.np_buyout_amt) : undefined,
+        pli_amount: formData.pli_amount ? parseFloat(formData.pli_amount) : undefined
       })
       setDocxPath(response.docx_path)
       toast.success('Offer letter (docx) generated!')
@@ -673,6 +726,7 @@ const OfferLetterForm = () => {
             np_buyout_mail_approval_date: extra.np_buyout_mail_approval_date || '',
             offer_approval_received_date: extra.offer_approval_received_date || '',
             offer_approval_email_sent_date: extra.offer_approval_email_sent_date || '',
+            pli_amount: extra.pli_amount ? String(extra.pli_amount) : '',
           }))
           toast.success('Candidate data loaded')
         })
@@ -792,7 +846,7 @@ const OfferLetterForm = () => {
         </div>
         
         {/* Progress Steps */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
           <div className="flex items-center justify-between">
             {[1, 2, 3].map((step) => (
               <React.Fragment key={step}>
@@ -801,7 +855,7 @@ const OfferLetterForm = () => {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: step * 0.1 }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
                       step <= currentStep
                         ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-lg'
                         : 'bg-gray-200 text-gray-500'
@@ -813,7 +867,7 @@ const OfferLetterForm = () => {
                       step
                     )}
                   </motion.div>
-                  <span className={`ml-2 text-sm font-medium hidden sm:block ${
+                  <span className={`ml-2 text-xs font-bold uppercase tracking-wider hidden sm:block ${
                     step <= currentStep ? 'text-gray-800' : 'text-gray-400'
                   }`}>
                     {step === 1 && 'General / Recruitment'}
@@ -845,7 +899,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('candidateDemographics')}
                   icon={FiFileText}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <input type="text" name="candidate_name" placeholder="Candidate Name (Full Name)" className="form-input w-full" value={formData.candidate_name} onChange={handleChange} />
                     <input type="tel" name="candidate_phone" placeholder="Contact No" className="form-input w-full" value={formData.candidate_phone} onChange={handleChange} />
                     <input type="email" name="candidate_email" placeholder="Email ID" className="form-input w-full" value={formData.candidate_email} onChange={handleChange} />
@@ -878,7 +932,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('recruiterDetails')}
                   icon={FiFolder}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <select name="status" className="form-input w-full" value={formData.status} onChange={handleChange} required>
                       <option value="">Status</option>
                       {formData.status && !['Joined','Offer Made','Abscond','Decline','Revoked'].includes(formData.status) && (
@@ -959,7 +1013,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('orgPlacement')}
                   icon={FiFolder}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <input type="text" name="department" placeholder="Department" className="form-input w-full" value={formData.department} onChange={handleChange} />
                     
                     <select name="business_unit" className="form-input w-full" value={formData.business_unit} onChange={handleChange} required>
@@ -971,42 +1025,60 @@ const OfferLetterForm = () => {
                       <option value="OwlSure">OwlSure</option>
                     </select>
 
-                    <select name="tsc" className="form-input w-full" value={formData.tsc} onChange={handleChange} required>
-                      <option value="">Technology Solution Center (TSC)</option>
-                      {formData.tsc && !['Core Platforms','Platform, App & Infra','Data & BI','Advanced Analytics','Risk Analytics'].includes(formData.tsc) && (
-                        <option value={formData.tsc}>{formData.tsc}</option>
-                      )}
-                      <option value="Core Platforms">Core Platforms</option>
-                      <option value="Platform, App & Infra">Platform, App & Infra</option>
-                      <option value="Data & BI">Data & BI</option>
-                      <option value="Advanced Analytics">Advanced Analytics</option>
-                      <option value="Risk Analytics">Risk Analytics</option>
-                    </select>
+                    {/* TSC & Sub-TSC: only shown for ValueMomentum */}
+                    {formData.business_unit !== 'OwlSure' && (
+                      <>
+                        <select name="tsc" className="form-input w-full" value={formData.tsc} onChange={handleChange}>
+                          <option value="">Technology Solution Center (TSC)</option>
+                          {formData.tsc && !Object.keys(TSC_SUB_TSC_MAP).includes(formData.tsc) && (
+                            <option value={formData.tsc}>{formData.tsc}</option>
+                          )}
+                          {Object.keys(TSC_SUB_TSC_MAP).map((tscName) => (
+                            <option key={tscName} value={tscName}>{tscName}</option>
+                          ))}
+                        </select>
 
-                    <select name="sub_tsc" className="form-input w-full" value={formData.sub_tsc} onChange={handleChange} required>
-                      <option value="">Sub-TSC</option>
-                      {formData.sub_tsc && !['Core','CCM','Domain','QE','App','Data'].includes(formData.sub_tsc) && (
-                        <option value={formData.sub_tsc}>{formData.sub_tsc}</option>
-                      )}
-                      <option value="Core">Core</option>
-                      <option value="CCM">CCM</option>
-                      <option value="Domain">Domain</option>
-                      <option value="QE">QE</option>
-                      <option value="App">App</option>
-                      <option value="Data">Data</option>
-                    </select>
+                        {/* Sub-TSC: only shown when selected TSC has children */}
+                        {formData.tsc && TSC_SUB_TSC_MAP[formData.tsc] && TSC_SUB_TSC_MAP[formData.tsc].length > 0 && (
+                          <select name="sub_tsc" className="form-input w-full" value={formData.sub_tsc} onChange={handleChange}>
+                            <option value="">Sub-TSC</option>
+                            {formData.sub_tsc && !TSC_SUB_TSC_MAP[formData.tsc].includes(formData.sub_tsc) && (
+                              <option value={formData.sub_tsc}>{formData.sub_tsc}</option>
+                            )}
+                            {TSC_SUB_TSC_MAP[formData.tsc].map((subTsc) => (
+                              <option key={subTsc} value={subTsc}>{subTsc}</option>
+                            ))}
+                          </select>
+                        )}
+                      </>
+                    )}
 
-                    <select name="allocation_unit" className="form-input w-full" value={formData.allocation_unit} onChange={handleChange} required>
-                      <option value="">Select Allocation Unit</option>
-                      {formData.allocation_unit && !['ValueMomentum','OwlSure'].includes(formData.allocation_unit) && (
-                        <option value={formData.allocation_unit}>{formData.allocation_unit}</option>
-                      )}
-                      <option value="ValueMomentum">ValueMomentum</option>
-                      <option value="OwlSure">OwlSure</option>
-                    </select>
+                    {/* Allocation Unit: auto-set for OwlSure, selectable for ValueMomentum */}
+                    {formData.business_unit === 'OwlSure' ? (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Allocation Unit</label>
+                        <input
+                          type="text"
+                          name="allocation_unit"
+                          className="form-input w-full bg-gray-100 cursor-not-allowed"
+                          value="OwlSure"
+                          readOnly
+                          disabled
+                        />
+                      </div>
+                    ) : (
+                      <select name="allocation_unit" className="form-input w-full" value={formData.allocation_unit} onChange={handleChange} required>
+                        <option value="">Select Allocation Unit</option>
+                        {formData.allocation_unit && !['ValueMomentum','OwlSure'].includes(formData.allocation_unit) && (
+                          <option value={formData.allocation_unit}>{formData.allocation_unit}</option>
+                        )}
+                        <option value="ValueMomentum">ValueMomentum</option>
+                        <option value="OwlSure">OwlSure</option>
+                      </select>
+                    )}
 
                     <input type="text" name="account" placeholder="Account" className="form-input w-full" value={formData.account} onChange={handleChange} />
-                    <input type="text" name="project" placeholder="Project" className="form-input w-full animate-pulse" value={formData.project} onChange={handleChange} />
+                    <input type="text" name="project" placeholder="Project" className="form-input w-full" value={formData.project} onChange={handleChange} />
                   </div>
                 </SectionAccordion>
 
@@ -1017,7 +1089,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('roleSpecs')}
                   icon={FiBriefcase}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <input type="text" name="designation" placeholder="Designation" className="form-input w-full font-semibold" value={formData.designation} onChange={handleChange} />
                     <input type="text" name="position" placeholder="Position" className="form-input w-full" value={formData.position} onChange={handleChange} />
                     <input type="text" name="grade" placeholder="Grade" className="form-input w-full" value={formData.grade} onChange={handleChange} />
@@ -1094,7 +1166,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('compBase')}
                   icon={FiDollarSign}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-teal-800 mb-1">Current CTC</label>
                       <input type="text" name="current_ctc" placeholder="Current CTC" className="form-input w-full font-bold text-teal-800 bg-teal-50/20" value={formatINR(formData.current_ctc)} onChange={handleCurrencyChange} />
@@ -1147,7 +1219,7 @@ const OfferLetterForm = () => {
                   onToggle={() => toggleSection('allowances')}
                   icon={FiLock}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-teal-800 mb-1">Signing Bonus (JB Amount)</label>
                       <input type="text" name="jb_amt" placeholder="JB Amount" className="form-input w-full font-semibold" value={formatINR(formData.jb_amt)} onChange={handleCurrencyChange} />
@@ -1163,6 +1235,10 @@ const OfferLetterForm = () => {
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">Days Lapsed</label>
                       <input type="number" name="days_lapsed" placeholder="Days Lapsed" className="form-input w-full" value={formData.days_lapsed} onChange={handleChange} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-teal-800 mb-1">PLI Amount (Performance-Linked Incentive)</label>
+                      <input type="text" name="pli_amount" placeholder="PLI Amount (optional)" className="form-input w-full font-semibold" value={formatINR(formData.pli_amount)} onChange={handleCurrencyChange} />
                     </div>
                     
                     <div className="col-span-1">
@@ -1184,38 +1260,38 @@ const OfferLetterForm = () => {
                 
                 {salaryBreakdown && (
                   <div className="mt-8 p-6 bg-white rounded-xl shadow-lg border border-teal-50">
-                    <h3 className="text-xl font-bold mb-4 text-teal-700 border-b pb-2">Salary Breakdown</h3>
+                    <h3 className="text-lg font-bold mb-3 text-teal-700 border-b pb-1.5">Salary Breakdown</h3>
                     <div className="overflow-x-auto border border-teal-100 rounded-lg shadow-sm">
-                      <table className="min-w-full text-sm border-collapse bg-white">
+                      <table className="min-w-full text-xs border-collapse bg-white">
                         <thead>
                           <tr className="bg-teal-50/50">
-                            <th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component A - Earnings</th>
+                            <th className="px-3 py-1.5 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component A - Earnings</th>
                           </tr>
                           <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="px-4 py-2 text-left font-semibold text-gray-600">Earnings</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-600">Monthly Amount</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-600">Annual</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-gray-500 uppercase tracking-wider">Earnings</th>
+                            <th className="px-3 py-1.5 text-right font-bold text-gray-500 uppercase tracking-wider">Monthly Amount</th>
+                            <th className="px-3 py-1.5 text-right font-bold text-gray-500 uppercase tracking-wider">Annual</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Basic Salary</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.basicMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">House Rent Allowance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.hraMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Conveyance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">LTA</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Food allowance</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.foodMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-4 py-2 text-teal-800">Total Earnings</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
-                          <tr className="bg-teal-50/50"><th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component B - Statutory Benefits</th></tr>
-                          <tr className="bg-gray-50 border-b border-gray-200"><th className="px-4 py-2 text-left font-semibold text-gray-600">Statutory Benefits</th><th></th><th></th></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Employer PF</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Gratuity</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Total</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-4 py-2 text-teal-800">Total Annual CTC (A+B)</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="px-4 py-2 text-right text-teal-800">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
-                          <tr className="bg-teal-50/50"><th className="px-4 py-3 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Deductions</th></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Provident Fund (Employee & Employer)</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Gratuity</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
-                          <tr className="border-b border-gray-100"><td className="px-4 py-2 text-gray-700">Professional Tax</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="px-4 py-2 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
-                          <tr className="font-bold bg-red-50/50 border-b border-red-100"><td className="px-4 py-2 text-red-800">Total Deductions</td><td className="px-4 py-2 text-right text-red-800">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="px-4 py-2 text-right text-red-800">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
-                          <tr><td className="px-4 py-2 text-gray-500">Income Tax</td><td></td><td className="px-4 py-2 text-right text-gray-500 font-semibold">As applicable</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Basic Salary</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.basicMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.basicAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">House Rent Allowance</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.hraMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.hraAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Conveyance</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.conveyanceAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">LTA</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.ltaAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Food allowance</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.foodMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.foodAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-3 py-1 text-teal-800">Total Earnings</td><td className="px-3 py-1 text-right text-teal-800">{salaryBreakdown?.totalEarningsMonthly || '-'}</td><td className="px-3 py-1 text-right text-teal-800">{salaryBreakdown?.totalEarningsAnnual || '-'}</td></tr>
+                          <tr className="bg-teal-50/50"><th className="px-3 py-1.5 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Component B - Statutory Benefits</th></tr>
+                          <tr className="bg-gray-50 border-b border-gray-200"><th className="px-3 py-1 text-left font-semibold text-gray-600">Statutory Benefits</th><th></th><th></th></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Employer PF</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.employerPfAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Gratuity</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.gratuityAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Total</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.statutoryTotalAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-teal-50/30 border-b border-teal-100"><td className="px-3 py-1 text-teal-800">Total Annual CTC (A+B)</td><td className="px-3 py-1 text-right text-teal-800">{salaryBreakdown?.ctcMonthly || '-'}</td><td className="px-3 py-1 text-right text-teal-800">{salaryBreakdown?.ctcAnnual || '-'}</td></tr>
+                          <tr className="bg-teal-50/50"><th className="px-3 py-1.5 text-center font-bold text-teal-800 border-b border-teal-100" colSpan="3">Deductions</th></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Provident Fund (Employee & Employer)</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionPfAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Gratuity</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.deductionGratuityAnnual || '-'}</td></tr>
+                          <tr className="border-b border-gray-100"><td className="px-3 py-1 text-gray-700">Professional Tax</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxMonthly || '-'}</td><td className="px-3 py-1 text-right text-gray-900 font-medium">{salaryBreakdown?.professionalTaxAnnual || '-'}</td></tr>
+                          <tr className="font-bold bg-red-50/50 border-b border-red-100"><td className="px-3 py-1 text-red-800">Total Deductions</td><td className="px-3 py-1 text-right text-red-800">{salaryBreakdown?.totalDeductionsMonthly || '-'}</td><td className="px-3 py-1 text-right text-red-800">{salaryBreakdown?.totalDeductionsAnnual || '-'}</td></tr>
+                          <tr><td className="px-3 py-1 text-gray-500">Income Tax</td><td></td><td className="px-3 py-1 text-right text-gray-500 font-semibold">As applicable</td></tr>
                         </tbody>
                       </table>
                     </div>
